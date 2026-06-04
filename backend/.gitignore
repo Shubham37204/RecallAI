@@ -20,6 +20,7 @@ ENV/
 
 # Test files requested to be excluded
 tests/
+.env.txt/
 
 # Test, coverage, and quality tool artifacts
 .pytest_cache/
@@ -89,3 +90,4 @@ hf_cache/
 .DS_Store
 Thumbs.db
 Desktop.ini
+validate.py
