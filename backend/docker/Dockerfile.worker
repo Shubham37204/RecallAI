@@ -1,0 +1,29 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Dockerfile.worker — Celery background worker
+# Same base as API — different CMD entrypoint only
+# ─────────────────────────────────────────────────────────────────────────────
+
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+COPY . .
+
+# Celery worker entrypoint
+# --loglevel=info     → visible task logs
+# --concurrency       → read from env via celery_app.py config
+CMD ["celery", "--app", "workers.celery_app.celery_app", "worker", "--loglevel=info"]

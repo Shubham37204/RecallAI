@@ -1,0 +1,75 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# bookmark-brain — docker-compose.yml
+# Boots: Qdrant + API + Worker
+#
+# Redis  → Upstash (external, no local container)
+# Postgres → Supabase (external, no local container)
+#
+# Usage:
+#   docker-compose up --build          # first run
+#   docker-compose up                  # subsequent runs
+#   docker-compose down                # stop all
+#   docker-compose down -v             # stop + wipe volumes
+#   docker-compose logs -f api         # tail API logs
+#   docker-compose logs -f worker      # tail worker logs
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Qdrant ──────────────────────────────────────────────────────────────────
+  # Vector database for semantic search.
+  # Dashboard UI: http://localhost:6333/dashboard
+  qdrant:
+    image: qdrant/qdrant:v1.14.1
+    container_name: bookmark_qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:6333/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── FastAPI ──────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: docker/Dockerfile.api
+    container_name: bookmark_api
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Celery Worker ────────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: docker/Dockerfile.worker
+    container_name: bookmark_worker
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  qdrant_data:
