@@ -27,7 +27,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
-from api.routers import health
+from api.routers import health, bookmarks
 from config.settings import get_settings
 from observability.logger import get_logger, setup_logging
 from observability.metrics import get_metrics_response
@@ -108,6 +108,7 @@ app.add_middleware(
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 app.include_router(health.router)
+app.include_router(bookmarks.router)
 
 
 # ── Metrics endpoint ──────────────────────────────────────────────────────────

@@ -49,7 +49,6 @@ def setup_logging() -> None:
     # Applied to every log entry regardless of format
     shared_processors: list = [
         structlog.contextvars.merge_contextvars,        # request-scoped context
-        structlog.stdlib.add_logger_name,               # module name
         structlog.stdlib.add_log_level,                 # level string
         structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.TimeStamper(fmt="iso"),    # ISO 8601 timestamp
