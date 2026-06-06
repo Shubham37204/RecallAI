@@ -3,20 +3,12 @@ api/main.py
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Purpose:
     FastAPI application entry point.
-    Configures:
-        - Lifespan (startup + shutdown hooks)
-        - CORS middleware
-        - Route registration
-        - Prometheus metrics endpoint
-        - Global exception handling
+    Lifespan, CORS, routers, Swagger config.
 
-Lifespan pattern (replaces deprecated @app.on_event):
-    Modern FastAPI uses async context manager for startup/shutdown.
-    On startup:  setup logging, bootstrap Qdrant collection
-    On shutdown: close DB pool, Redis pool, Qdrant client
-
-Boot command:
-    uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+Auth in Slice 4:
+    Swagger UI shows Bearer token auth.
+    Dev: X-User-Id header OR Bearer JWT both work.
+    Prod: only Bearer JWT accepted.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
@@ -25,6 +17,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse, Response
 
 from api.routers import health, bookmarks
@@ -39,62 +32,30 @@ settings = get_settings()
 logger = get_logger(__name__)
 
 
-# ── Lifespan ──────────────────────────────────────────────────────────────────
-
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """
-    Runs on startup (before yield) and shutdown (after yield).
-
-    Startup:
-        1. Setup structured logging
-        2. Bootstrap Qdrant collection (idempotent)
-        3. Log that app is ready
-
-    Shutdown:
-        1. Close Redis connection pool
-        2. Close Qdrant client
-        3. Dispose SQLAlchemy engine pool
-    """
-    # ── Startup ───────────────────────────────────────────────────────────────
     setup_logging()
     logger.info("app.starting", env=settings.app_env, version=settings.app_version)
-
-    # Ensure Qdrant collection exists (safe to call every boot)
     await ensure_collection()
     logger.info("qdrant.collection.ready", collection=settings.qdrant_collection_name)
-
     logger.info("app.ready", host=settings.app_host, port=settings.app_port)
-
     yield
-
-    # ── Shutdown ──────────────────────────────────────────────────────────────
     logger.info("app.shutting_down")
-
     await close_redis()
     await close_qdrant()
-
     engine = get_engine()
     await engine.dispose()
-
     logger.info("app.shutdown_complete")
 
-
-# ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title="Bookmark Brain API",
     description="AI-powered bookmark manager — save, summarize, search.",
     version=settings.app_version,
-    docs_url="/docs" if settings.is_development else None,    # hide docs in prod
+    docs_url="/docs" if settings.is_development else None,
     redoc_url="/redoc" if settings.is_development else None,
     lifespan=lifespan,
 )
-
-
-# ── CORS ──────────────────────────────────────────────────────────────────────
-# Allows frontend (Next.js on localhost:3000) to call the API.
-# In production, restrict to your deployed frontend domain only.
 
 app.add_middleware(
     CORSMiddleware,
@@ -104,26 +65,57 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# ── Routes ────────────────────────────────────────────────────────────────────
-
 app.include_router(health.router)
 app.include_router(bookmarks.router)
 
 
-# ── Metrics endpoint ──────────────────────────────────────────────────────────
-# Prometheus scrapes GET /metrics on its own schedule (default every 15s).
-# Not behind auth — typically only exposed on internal network in production.
+# ── Swagger auth config ───────────────────────────────────────────────────────
+# Shows "Authorize" button in Swagger UI.
+# Dev: enter any string in X-User-Id field to test without real JWT.
+# Prod: enter real Clerk JWT token in BearerAuth field.
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+
+    schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "Clerk JWT token. Get from frontend after login.",
+        },
+        "DevUserIdHeader": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "X-User-Id",
+            "description": "DEV ONLY — enter any user ID to bypass JWT auth.",
+        },
+    }
+
+    for path in schema.get("paths", {}).values():
+        for method in path.values():
+            method["security"] = [{"BearerAuth": []}, {"DevUserIdHeader": []}]
+
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = custom_openapi
+
 
 @app.get("/metrics", include_in_schema=False)
 async def metrics() -> Response:
     data, content_type = get_metrics_response()
     return Response(content=data, media_type=content_type)
 
-
-# ── Global exception handler ──────────────────────────────────────────────────
-# Catches any unhandled exception and returns structured JSON error.
-# Prevents stack traces leaking to API consumers.
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:

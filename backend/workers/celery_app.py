@@ -25,6 +25,7 @@ Task routing:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
+import platform
 import ssl
 
 from celery import Celery
@@ -40,9 +41,6 @@ celery_app = Celery(
     include=["workers.tasks"],
 )
 
-# ── SSL config for Upstash (rediss://) ───────────────────────────────────────
-# Celery requires ssl_cert_reqs to be an ssl module constant, not None.
-# CERT_NONE = don't verify certificate (fine for Upstash managed TLS).
 _ssl_config = {
     "ssl_cert_reqs": ssl.CERT_NONE,
 } if settings.celery_broker_url.startswith("rediss://") else None
@@ -62,4 +60,5 @@ celery_app.conf.update(
     enable_utc=True,
     broker_use_ssl=_ssl_config,
     redis_backend_use_ssl=_ssl_config,
+    worker_pool="solo" if platform.system() == "Windows" else "prefork",
 )

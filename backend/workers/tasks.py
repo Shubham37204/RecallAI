@@ -25,10 +25,23 @@ Retry logic:
 """
 
 import asyncio
+import sys
 import uuid
+from pathlib import Path
+
+# Ensure backend/ is on sys.path.
+# Must happen before any local imports below.
+_backend_dir = str(Path(__file__).resolve().parents[1])
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
 
 from workers.celery_app import celery_app
 from observability.logger import get_logger
+from stores.postgres.client import get_session_factory
+from services.bookmark_service import (
+    update_bookmark_status,
+    update_bookmark_after_pipeline,
+)
 
 logger = get_logger(__name__)
 
@@ -79,16 +92,18 @@ def process_bookmark_task(self, bookmark_id: str) -> dict:
 async def _process_bookmark_async(bookmark_id: str) -> dict:
     """
     Async implementation of bookmark processing.
-    Separated so it can be tested independently of Celery.
 
     Slice 3: STUB — updates status only.
     Slice 5: Full pipeline (scrape → clean → summarize → tag → embed).
+
+    Note: engine singleton is reset before each call because asyncio.run()
+    creates a new event loop — the previous engine's connections are bound
+    to the old loop and cannot be reused.
     """
-    from stores.postgres.client import get_session_factory
-    from services.bookmark_service import (
-        update_bookmark_status,
-        update_bookmark_after_pipeline,
-    )
+    # Reset engine so new connections are created in this event loop
+    import stores.postgres.client as pg
+    pg._engine = None
+    pg._session_factory = None
 
     bm_uuid = uuid.UUID(bookmark_id)
     factory = get_session_factory()
