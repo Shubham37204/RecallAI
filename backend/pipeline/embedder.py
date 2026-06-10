@@ -7,13 +7,18 @@ Purpose:
 
 Flow:
     1. Read clean_text from state
-    2. sentence-transformers → 384-dim vector
+    2. sentence-transformers → 384-dim vector (offloaded to thread pool)
     3. Upsert to Qdrant with payload (url, user_id, bookmark_id)
     4. Write vector + qdrant_point_id to state
 
 Why embed clean_text not summary:
     - Summary loses detail; clean_text captures full semantics
     - Search needs to match specific facts, not just gist
+
+Why run_in_executor:
+    - model.encode() is CPU-bound + blocking
+    - Called inside async def — without executor, blocks event loop
+    - run_in_executor offloads to thread pool, event loop stays free
 
 Failure modes handled:
     - Model load error   → mark_failed
@@ -24,8 +29,11 @@ Failure modes handled:
 
 from __future__ import annotations
 
+import asyncio
 import uuid
+from functools import partial
 
+from qdrant_client.models import PointStruct
 from sentence_transformers import SentenceTransformer
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -59,13 +67,17 @@ class EmbedderStep(BaseStep):
             state.mark_failed(self.name, "No clean_text to embed")
             return state
 
-        # Generate embedding (CPU-bound but fast for 384-dim)
+        # Generate embedding — offload CPU-bound encode to thread pool
+        # model.encode() blocks; run_in_executor keeps event loop free
         try:
             model = _get_model()
-            vector: list[float] = model.encode(
+            loop = asyncio.get_event_loop()
+            encode_fn = partial(
+                model.encode,
                 state.clean_text,
-                normalize_embeddings=True,   # cosine similarity via dot product
-            ).tolist()
+                normalize_embeddings=True,  # cosine similarity via dot product
+            )
+            vector: list[float] = (await loop.run_in_executor(None, encode_fn)).tolist()
         except Exception as e:
             state.mark_failed(self.name, f"Embedding generation failed: {e}")
             self.logger.error(
@@ -123,8 +135,6 @@ class EmbedderStep(BaseStep):
         vector: list[float],
         state: PipelineState,
     ) -> None:
-        from qdrant_client.models import PointStruct
-
         settings = get_settings()
         client = get_qdrant_client()
 
@@ -144,3 +154,4 @@ class EmbedderStep(BaseStep):
                 )
             ],
         )
+        

@@ -15,7 +15,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore", 
+        extra="ignore",
     )
 
     # ── App ───────────────────────────────────────────────────────────────────
@@ -25,8 +25,10 @@ class Settings(BaseSettings):
     app_port: int = 8000
     app_version: str = "0.1.0"
 
-    database_url: str = Field(..., description="Async URL for SQLAlchemy runtime")
-    database_sync_url: str = Field(..., description="Sync URL for Alembic migrations")
+    database_url: str = Field(...,
+                              description="Async URL for SQLAlchemy runtime")
+    database_sync_url: str = Field(...,
+                                   description="Sync URL for Alembic migrations")
 
     # ── Redis ─────────────────────────────────────────────────────────────────
     redis_url: str = Field(default="redis://localhost:6379/0")
@@ -71,9 +73,11 @@ class Settings(BaseSettings):
     max_content_length: int = 5_000_000  # 5MB
 
     # ── Clerk Auth ────────────────────────────────────────────────────────────
-    clerk_publishable_key: str = Field(..., description="Clerk publishable key")
+    clerk_publishable_key: str = Field(...,
+                                       description="Clerk publishable key")
     clerk_secret_key: str = Field(..., description="Clerk secret key")
-    clerk_jwks_url: str = Field(..., description="Clerk JWKS endpoint for JWT verification")
+    clerk_jwks_url: str = Field(...,
+                                description="Clerk JWKS endpoint for JWT verification")
 
     # ── Rate Limiting ─────────────────────────────────────────────────────────
     rate_limit_per_minute: int = 60
@@ -86,6 +90,8 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "console"
     metrics_enabled: bool = True
+
+    search_max_results: int = 50
 
     @computed_field
     @property
@@ -117,4 +123,3 @@ def get_settings() -> Settings:
         settings = get_settings()
     """
     return Settings()
-    

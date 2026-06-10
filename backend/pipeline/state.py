@@ -101,3 +101,34 @@ class PipelineState:
             f"complete={self.is_complete} "
             f"error={self.error!r}>"
         )
+    
+
+# import uuid
+# from dataclasses import dataclass, field
+# from typing import Optional
+
+
+# @dataclass
+# class BookmarkPipelineState:
+#     bookmark_id: uuid.UUID
+#     url: str
+#     raw_text: Optional[str] = None
+#     scraped_title: Optional[str] = None
+#     content_length: Optional[int] = None
+#     clean_text: Optional[str] = None
+#     summary: Optional[str] = None
+#     tags: list[str] = field(default_factory=list)
+#     embedding: Optional[list[float]] = None
+#     qdrant_point_id: Optional[uuid.UUID] = None
+#     errors: list[str] = field(default_factory=list)
+#     completed_steps: list[str] = field(default_factory=list)
+
+#     def mark_step_done(self, step_name: str) -> None:
+#         self.completed_steps.append(step_name)
+
+#     def add_error(self, step_name: str, error: str) -> None:
+#         self.errors.append(f"{step_name}: {error}")
+
+#     @property
+#     def has_errors(self) -> bool:
+#         return len(self.errors) > 0

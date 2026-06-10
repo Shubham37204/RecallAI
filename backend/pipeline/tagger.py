@@ -20,6 +20,7 @@ Failure modes handled:
     - Groq API error  → mark_failed
     - Parse fails     → fallback to empty list (not fatal)
     - Empty response  → fallback to empty list
+    - Low tag count   → logged as warning (observable, not fatal)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
@@ -131,6 +132,7 @@ class TaggerStep(BaseStep):
         Parse comma-separated tag string into clean list.
         Handles extra whitespace, newlines, uppercase.
         Falls back to empty list on any parse failure.
+        Logs warning if Groq returns fewer than 3 tags (data quality signal).
         """
         if not raw:
             return []
@@ -143,5 +145,16 @@ class TaggerStep(BaseStep):
             if tag and len(tag) >= 2:
                 tags.append(tag)
 
-        # Enforce 3-7 range
-        return tags[:7]
+        tags = tags[:7]  # cap at 7
+
+        # Surface data quality issues — prompt says 3-7, log if below minimum
+        if len(tags) < 3:
+            self.logger.warning(
+                "step.tagger.low_tag_count",
+                tag_count=len(tags),
+                tags=tags,
+            )
+
+        return tags
+    
+    

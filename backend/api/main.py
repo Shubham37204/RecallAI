@@ -27,6 +27,7 @@ from observability.metrics import get_metrics_response
 from stores.postgres.client import get_engine
 from stores.qdrant.client import close_qdrant, ensure_collection
 from stores.redis.client import close_redis
+from api.routers.search import router as search_router
 
 settings = get_settings()
 logger = get_logger(__name__)
@@ -67,7 +68,7 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(bookmarks.router)
-
+app.include_router(search_router)
 
 # ── Swagger auth config ───────────────────────────────────────────────────────
 # Shows "Authorize" button in Swagger UI.
@@ -109,7 +110,6 @@ def custom_openapi():
 
 
 app.openapi = custom_openapi
-
 
 @app.get("/metrics", include_in_schema=False)
 async def metrics() -> Response:
