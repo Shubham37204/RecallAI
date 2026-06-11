@@ -61,7 +61,8 @@ class EmbedderStep(BaseStep):
         if self._skip_if_failed(state):
             return state
 
-        self.logger.info("step.embedder.started", bookmark_id=str(state.bookmark_id))
+        self.logger.info("step.embedder.started",
+                         bookmark_id=str(state.bookmark_id))
 
         if not state.clean_text:
             state.mark_failed(self.name, "No clean_text to embed")
@@ -71,7 +72,7 @@ class EmbedderStep(BaseStep):
         # model.encode() blocks; run_in_executor keeps event loop free
         try:
             model = _get_model()
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             encode_fn = partial(
                 model.encode,
                 state.clean_text,
@@ -146,6 +147,7 @@ class EmbedderStep(BaseStep):
                     vector=vector,
                     payload={
                         "bookmark_id": str(state.bookmark_id),
+                        "user_id": state.user_id,
                         "url": state.url,
                         "title": state.title,
                         "summary": state.summary,
@@ -154,4 +156,3 @@ class EmbedderStep(BaseStep):
                 )
             ],
         )
-        

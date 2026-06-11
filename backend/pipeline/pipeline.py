@@ -62,7 +62,7 @@ class BookmarkPipeline:
             EmbedderStep(),
         ]
 
-    async def run(self, bookmark_id: uuid.UUID, url: str) -> PipelineState:
+    async def run(self, bookmark_id: uuid.UUID, url: str, user_id: str) -> PipelineState:
         """
         Run full pipeline for a bookmark.
 
@@ -73,12 +73,13 @@ class BookmarkPipeline:
         Returns:
             PipelineState — check state.has_error before writing to DB
         """
-        state = PipelineState(bookmark_id=bookmark_id, url=url)
+        state = PipelineState(bookmark_id=bookmark_id,
+                              url=url, user_id=user_id)
 
         logger.info(
             "pipeline.started",
             bookmark_id=str(bookmark_id),
-            url=url,
+            url=url, user_id=user_id
         )
 
         for step in self.steps:

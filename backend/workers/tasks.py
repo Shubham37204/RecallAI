@@ -166,6 +166,13 @@ Retry logic:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
+from workers.celery_app import celery_app
+from stores.postgres.client import get_session_factory
+from services.bookmark_service import (
+    update_bookmark_after_pipeline,
+    update_bookmark_status,
+)
+from observability.logger import get_logger
 import asyncio
 import sys
 import uuid
@@ -175,13 +182,6 @@ _backend_dir = str(Path(__file__).resolve().parents[1])
 if _backend_dir not in sys.path:
     sys.path.insert(0, _backend_dir)
 
-from observability.logger import get_logger
-from services.bookmark_service import (
-    update_bookmark_after_pipeline,
-    update_bookmark_status,
-)
-from stores.postgres.client import get_session_factory
-from workers.celery_app import celery_app
 
 logger = get_logger(__name__)
 
@@ -259,7 +259,7 @@ async def _process_bookmark_async(bookmark_id: str) -> dict:
     # Step 3: Run full AI pipeline
     from pipeline.pipeline import BookmarkPipeline
     pipeline = BookmarkPipeline()
-    state = await pipeline.run(bookmark_id=bm_uuid, url=bookmark.url)
+    state = await pipeline.run(bookmark_id=bm_uuid, url=bookmark.url, user_id=bookmark.user_id)
 
     # Step 4: Write results or mark failed
     if state.has_error:
