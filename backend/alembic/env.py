@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # ── Import Settings + Models ──────────────────────────────────────────────────
 # Settings must be imported BEFORE Base — Base import triggers model registration
 from config.settings import get_settings                 # noqa: E402
-from stores.postgres.client import Base                  # noqa: E402
+from stores.postgres.client import Base                # noqa: E402
 import stores.postgres.models  # noqa: F401, E402        # registers all models with Base.metadata
 
 settings = get_settings()

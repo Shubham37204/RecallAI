@@ -62,7 +62,7 @@ async def search(
     bookmarks relevant to the query, regardless of exact keyword match.
     Pydantic enforces min_length=2, max_length=500 on q.
     """
-    q = body.q.strip()
+    q = body.q
 
     logger.info("search.request", user_id=user_id, query=q[:50], limit=body.limit)
 

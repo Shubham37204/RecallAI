@@ -16,8 +16,7 @@ Changes from original:
 
 import uuid
 
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel, Field, field_validator
 
 class SearchRequest(BaseModel):
     """
@@ -27,6 +26,12 @@ class SearchRequest(BaseModel):
     q: str = Field(..., min_length=2, max_length=500)
     limit: int = Field(default=10, ge=1, le=50)
 
+    @field_validator("q")
+    @classmethod
+    def q_must_not_be_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("query must not be blank or whitespace only")
+        return v.strip()
 
 class SearchResult(BaseModel):
     """
