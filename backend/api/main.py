@@ -1,17 +1,24 @@
+import time
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse, Response
-from api.routers import health, bookmarks
+
+from api.routers import bookmarks, health
+from api.routers.search import router as search_router
 from config.settings import get_settings
 from observability.logger import get_logger, setup_logging
-from observability.metrics import get_metrics_response
+from observability.metrics import (
+    get_metrics_response,
+    http_request_duration_seconds,
+    http_requests_total,
+)
 from stores.postgres.client import get_engine
 from stores.qdrant.client import close_qdrant, ensure_collection
 from stores.redis.client import close_redis
-from api.routers.search import router as search_router
 
 settings = get_settings()
 logger = get_logger(__name__)
@@ -21,8 +28,16 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     setup_logging()
     logger.info("app.starting", env=settings.app_env, version=settings.app_version)
-    await ensure_collection()
-    logger.info("qdrant.collection.ready", collection=settings.qdrant_collection_name)
+
+    try:
+        await ensure_collection()
+        logger.info("qdrant.collection.ready",
+                    collection=settings.qdrant_collection_name)
+    except Exception as e:
+        logger.warning("qdrant.collection.unavailable_at_startup",
+                       error=str(e),
+                       note="Server starting anyway — /health will report qdrant degraded")
+
     logger.info("app.ready", host=settings.app_host, port=settings.app_port)
     yield
     logger.info("app.shutting_down")
@@ -50,9 +65,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def prometheus_middleware(request: Request, call_next):
+    if request.url.path == "/metrics":
+        return await call_next(request)
+
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration = time.perf_counter() - start
+
+    http_requests_total.labels(
+        method=request.method,
+        endpoint=request.url.path,
+        status=response.status_code,
+    ).inc()
+
+    http_request_duration_seconds.labels(
+        method=request.method,
+        endpoint=request.url.path,
+    ).observe(duration)
+
+    return response
+
+
 app.include_router(health.router)
 app.include_router(bookmarks.router)
 app.include_router(search_router)
+
 
 def custom_openapi():
     if app.openapi_schema:
@@ -90,6 +130,7 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
+
 @app.get("/metrics", include_in_schema=False)
 async def metrics() -> Response:
     data, content_type = get_metrics_response()
@@ -107,5 +148,6 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     )
     return JSONResponse(
         status_code=500,
-        content={"error": "internal_server_error", "message": "An unexpected error occurred"},
+        content={"error": "internal_server_error",
+                 "message": "An unexpected error occurred"},
     )

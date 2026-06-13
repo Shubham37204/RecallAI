@@ -1,24 +1,4 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# bookmark-brain — docker-compose.yml
-# Boots: Qdrant + API + Worker
-#
-# Redis  → Upstash (external, no local container)
-# Postgres → Supabase (external, no local container)
-#
-# Usage:
-#   docker-compose up --build          # first run
-#   docker-compose up                  # subsequent runs
-#   docker-compose down                # stop all
-#   docker-compose down -v             # stop + wipe volumes
-#   docker-compose logs -f api         # tail API logs
-#   docker-compose logs -f worker      # tail worker logs
-# ─────────────────────────────────────────────────────────────────────────────
-
 services:
-
-  # ── Qdrant ──────────────────────────────────────────────────────────────────
-  # Vector database for semantic search.
-  # Dashboard UI: http://localhost:6333/dashboard
   qdrant:
     image: qdrant/qdrant:v1.14.1
     container_name: bookmark_qdrant
@@ -34,7 +14,6 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ── FastAPI ──────────────────────────────────────────────────────────────────
   api:
     build:
       context: ./backend
@@ -56,7 +35,6 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ── Celery Worker ────────────────────────────────────────────────────────────
   worker:
     build:
       context: ./backend

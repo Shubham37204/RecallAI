@@ -1,62 +1,36 @@
-# ── API ───────────────────────────────────────────────────────────────────────
 fastapi==0.136.3
 uvicorn[standard]==0.48.0
-python-multipart==0.0.30                # file/form uploads
-orjson==3.11.9                          # faster JSON serialization, FastAPI uses natively
+python-multipart==0.0.30               
+orjson==3.11.9                        
 
-# ── Validation & Config ───────────────────────────────────────────────────────
 pydantic==2.13.4
-pydantic-settings==2.14.1               # reads .env → typed Settings class
+pydantic-settings==2.14.1               
 
-# ── Auth (Clerk JWT verification) ─────────────────────────────────────────────
-python-jose[cryptography]==3.5.0        # JWT decode + signature verification
-cryptography==48.0.0                    # required by python-jose
+python-jose[cryptography]==3.5.0        
+cryptography==48.0.0                    
 
-# ── Database (PostgreSQL / Supabase) ──────────────────────────────────────────
 sqlalchemy[asyncio]==2.0.50
-asyncpg==0.31.0                         # async postgres driver (runtime)
-psycopg2-binary==2.9.12                 # sync driver for Alembic ONLY
+asyncpg==0.31.0                         
+psycopg2-binary==2.9.12                
 alembic==1.18.4
 
-# ── Task Queue ────────────────────────────────────────────────────────────────
 celery==5.6.3
-redis==8.0.0                            # broker + result backend + cache
+redis==8.0.0                            
 
-# ── Vector DB ─────────────────────────────────────────────────────────────────
 qdrant-client==1.18.0
 
-# ── LLM ───────────────────────────────────────────────────────────────────────
 groq==1.4.0
 
-# ── Embeddings (local, free, no API key) ──────────────────────────────────────
 sentence-transformers==5.5.1
-# NOTE: install torch separately AFTER this file to get CPU-only build:
-# pip install torch --index-url https://download.pytorch.org/whl/cpu
 
-# ── Scraping ──────────────────────────────────────────────────────────────────
 trafilatura==2.0.0
-httpx==0.28.1                           # async HTTP client + FastAPI test client
+httpx==0.28.1                          
 
-# ── Retry Logic ───────────────────────────────────────────────────────────────
-tenacity==9.1.4                         # retries for Groq, Qdrant, scraper
+tenacity==9.1.4                         
 
-# ── Observability ─────────────────────────────────────────────────────────────
 structlog==25.5.0
 prometheus-client==0.25.0
 
-# ── Testing ───────────────────────────────────────────────────────────────────
 pytest==9.0.3
 pytest-asyncio==1.4.0
 pytest-mock==3.15.1
-
-# ── Dev Tooling (linting, types, hooks) ───────────────────────────────────────
-# Install separately in dev only — not needed in Docker prod image:
-# pip install ruff mypy pre-commit
-#
-# ruff==0.15.15       linting + formatting (replaces flake8 + black + isort)
-# mypy==2.1.0         static type checking
-# pre-commit==4.6.0   git hooks: runs ruff + mypy before every commit
-
-# ── greenlet ──────────────────────────────────────────────────────────────────
-# DO NOT pin explicitly. SQLAlchemy[asyncio] pulls correct version automatically.
-# Only add if you hit: "greenlet not found" error at runtime.
