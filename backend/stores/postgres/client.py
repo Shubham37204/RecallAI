@@ -11,16 +11,10 @@ from sqlalchemy.orm import DeclarativeBase
 from config.settings import get_settings
 
 
-# ── Base ──────────────────────────────────────────────────────────────────────
-# Defined at module level — safe, no DB connection needed.
-# All ORM models inherit from this.
 class Base(DeclarativeBase):
     pass
 
 
-# ── Lazy Engine ───────────────────────────────────────────────────────────────
-# Engine created on first call — NOT at import time.
-# This means importing models.py in unit tests does NOT trigger DB connection.
 _engine = None
 _session_factory = None
 
@@ -50,8 +44,6 @@ def get_session_factory():
     return _session_factory
 
 
-# ── Dependency ────────────────────────────────────────────────────────────────
-# Used in FastAPI routes via Depends(get_db_session).
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     factory = get_session_factory()
     async with factory() as session:
@@ -63,7 +55,6 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
             raise
 
 
-# ── Health Check ──────────────────────────────────────────────────────────────
 async def check_postgres_health() -> bool:
     try:
         factory = get_session_factory()

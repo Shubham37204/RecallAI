@@ -1,36 +1,9 @@
-"""
-schemas/bookmark.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    Pydantic models for API request validation and response
-    serialization. These are NOT ORM models.
-
-Why separate from ORM models:
-    - ORM models (stores/postgres/models.py) = DB shape
-    - Schemas (here) = API contract shape
-    - They differ: API never exposes raw_content, internal
-      fields, or DB implementation details
-    - Decoupling means DB can change without breaking API
-
-Request flow:
-    HTTP JSON body → Pydantic validates → Python object
-    Python object  → Pydantic serializes → HTTP JSON response
-
-Schemas defined here:
-    BookmarkCreate  → POST /bookmarks request body
-    BookmarkResponse → what API returns for a bookmark
-    BookmarkStatus  → lightweight status-only response
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 import uuid
 from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, HttpUrl, field_validator
 
-
-# ── Request Schemas ───────────────────────────────────────────────────────────
 
 class BookmarkCreate(BaseModel):
     """
@@ -49,8 +22,6 @@ class BookmarkCreate(BaseModel):
         return str(v).strip()
 
 
-# ── Response Schemas ──────────────────────────────────────────────────────────
-
 class BookmarkResponse(BaseModel):
     """
     Full bookmark response returned by GET /bookmarks/{id}.
@@ -68,7 +39,7 @@ class BookmarkResponse(BaseModel):
     updated_at: datetime
     completed_at: datetime | None
 
-    model_config = {"from_attributes": True}  # allows ORM → schema conversion
+    model_config = {"from_attributes": True} 
 
 
 class BookmarkCreateResponse(BaseModel):

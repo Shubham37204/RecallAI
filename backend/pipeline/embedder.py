@@ -1,32 +1,3 @@
-# pipeline/embedder.py
-"""
-pipeline/embedder.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    EmbedderStep — generates vector embedding + upserts to Qdrant.
-
-Flow:
-    1. Read clean_text from state
-    2. sentence-transformers → 384-dim vector (offloaded to thread pool)
-    3. Upsert to Qdrant with payload (url, user_id, bookmark_id)
-    4. Write vector + qdrant_point_id to state
-
-Why embed clean_text not summary:
-    - Summary loses detail; clean_text captures full semantics
-    - Search needs to match specific facts, not just gist
-
-Why run_in_executor:
-    - model.encode() is CPU-bound + blocking
-    - Called inside async def — without executor, blocks event loop
-    - run_in_executor offloads to thread pool, event loop stays free
-
-Failure modes handled:
-    - Model load error   → mark_failed
-    - Qdrant upsert fail → mark_failed (tenacity retries 3x)
-    - Wrong dimension    → caught at upsert, mark_failed
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -42,7 +13,6 @@ from pipeline.base import BaseStep
 from pipeline.state import PipelineState
 from stores.qdrant.client import get_qdrant_client
 
-# Module-level model cache — loaded once, reused across tasks
 _model: SentenceTransformer | None = None
 
 
@@ -68,15 +38,13 @@ class EmbedderStep(BaseStep):
             state.mark_failed(self.name, "No clean_text to embed")
             return state
 
-        # Generate embedding — offload CPU-bound encode to thread pool
-        # model.encode() blocks; run_in_executor keeps event loop free
         try:
             model = _get_model()
             loop = asyncio.get_running_loop()
             encode_fn = partial(
                 model.encode,
                 state.clean_text,
-                normalize_embeddings=True,  # cosine similarity via dot product
+                normalize_embeddings=True,  
             )
             vector: list[float] = (await loop.run_in_executor(None, encode_fn)).tolist()
         except Exception as e:
@@ -88,7 +56,6 @@ class EmbedderStep(BaseStep):
             )
             return state
 
-        # Validate dimension
         settings = get_settings()
         if len(vector) != settings.embedding_dimension:
             state.mark_failed(
@@ -97,7 +64,6 @@ class EmbedderStep(BaseStep):
             )
             return state
 
-        # Upsert to Qdrant
         point_id = uuid.uuid4()
         try:
             await self._upsert_to_qdrant(

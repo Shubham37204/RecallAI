@@ -1,34 +1,7 @@
-"""
-api/routers/health.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    Health check endpoints for infrastructure monitoring.
-    Used by:
-        - Docker Compose healthcheck (decides if container is ready)
-        - Load balancers (decides if pod should receive traffic)
-        - Uptime monitors (alert on degradation)
-        - Developers (quick sanity check)
-
-Endpoints:
-    GET /health       → full health check (all stores)
-    GET /health/ping  → minimal liveness probe (no DB calls)
-
-Response contract:
-    200 → all systems healthy
-    503 → one or more systems degraded (returns which ones)
-
-Why 503 vs 200 on partial failure:
-    Load balancers use HTTP status codes to route traffic.
-    If DB is down, return 503 so LB stops routing here.
-    Never return 200 when a dependency is broken.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 import asyncio
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-
 from config.settings import get_settings
 from observability.logger import get_logger
 from stores.postgres.client import check_postgres_health
@@ -68,7 +41,6 @@ async def health_check() -> JSONResponse:
             }
         }
     """
-    # Run all 3 checks concurrently — no need to wait sequentially
     postgres_ok, redis_ok, qdrant_ok = await asyncio.gather(
         check_postgres_health(),
         check_redis_health(),

@@ -1,22 +1,3 @@
-"""
-api/routers/bookmarks.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    HTTP routes for bookmark operations.
-
-Endpoints:
-    POST /bookmarks             → create bookmark, queue pipeline
-    GET  /bookmarks             → list user's bookmarks
-    GET  /bookmarks/{id}        → get single bookmark
-    GET  /bookmarks/{id}/status → poll pipeline progress
-
-Auth (Slice 4):
-    All routes use get_current_user_id dependency.
-    Dev: accepts X-User-Id header OR Bearer JWT
-    Prod: only Bearer JWT accepted
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query

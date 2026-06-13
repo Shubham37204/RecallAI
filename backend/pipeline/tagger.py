@@ -1,29 +1,3 @@
-# pipeline/tagger.py
-"""
-pipeline/tagger.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    TaggerStep — calls Groq LLM to extract tags from content.
-
-Flow:
-    1. Read clean_text + summary from state
-    2. Build prompt → send to Groq
-    3. Parse comma-separated tags → list[str]
-    4. Write tags to state
-
-Tag rules (enforced in prompt):
-    - 3 to 7 tags
-    - lowercase, no spaces (use hyphens)
-    - topic-focused (not generic like "article")
-
-Failure modes handled:
-    - Groq API error  → mark_failed
-    - Parse fails     → fallback to empty list (not fatal)
-    - Empty response  → fallback to empty list
-    - Low tag count   → logged as warning (observable, not fatal)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 from __future__ import annotations
 
 from groq import AsyncGroq
@@ -84,7 +58,6 @@ class TaggerStep(BaseStep):
             )
             tags = self._parse_tags(raw_tags)
         except Exception as e:
-            # Tagging failure is non-fatal — pipeline continues with empty tags
             self.logger.warning(
                 "step.tagger.failed_nonfatal",
                 bookmark_id=str(state.bookmark_id),
@@ -113,8 +86,8 @@ class TaggerStep(BaseStep):
 
         response = await client.chat.completions.create(
             model=settings.groq_model,
-            max_tokens=100,           # tags are short
-            temperature=0.1,          # low temp = consistent tags
+            max_tokens=100,        
+            temperature=0.1,          
             messages=[
                 {"role": "system", "content": _SYSTEM_PROMPT},
                 {"role": "user", "content": _USER_TEMPLATE.format(
@@ -140,14 +113,12 @@ class TaggerStep(BaseStep):
         tags = []
         for tag in raw.split(","):
             tag = tag.strip().lower()
-            # Remove non-alphanumeric except hyphens
             tag = "".join(c for c in tag if c.isalnum() or c == "-")
             if tag and len(tag) >= 2:
                 tags.append(tag)
 
-        tags = tags[:7]  # cap at 7
+        tags = tags[:7] 
 
-        # Surface data quality issues — prompt says 3-7, log if below minimum
         if len(tags) < 3:
             self.logger.warning(
                 "step.tagger.low_tag_count",

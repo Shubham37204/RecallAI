@@ -1,5 +1,0 @@
-services/search_service.py          ← new file
-api/middleware/rate_limit.py        ← new file
-api/routers/search.py               ← new file (search_router.py)
-api/main.py                         ← add 2 lines from main_diff.py
-config/settings.py                  ← add 1 field from settings_diff.py

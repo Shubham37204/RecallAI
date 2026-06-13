@@ -1,40 +1,14 @@
-# api/routers/search.py
-"""
-api/routers/search.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    Search router — POST /search endpoint.
-
-Flow:
-    1. Auth + rate limit (check_search_rate_limit dependency)
-    2. Pydantic validates body (min 2 chars, max 500 chars enforced by schema)
-    3. Call search_service.search_bookmarks()
-    4. Return ranked SearchResponse
-
-Why POST not GET:
-    - Future filters (tags, date_from, date_to) fit naturally in body
-    - GET query params become unwieldy with multiple filters
-    - SearchRequest schema is single source of truth for validation
-
-Schemas imported from schemas/search.py — single source of truth.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from api.dependencies import get_session
 from api.middleware.rate_limit import check_search_rate_limit
 from observability.logger import get_logger
 from schemas.search import SearchRequest, SearchResponse, SearchResult
 from services.search_service import search_bookmarks
-
 logger = get_logger("api.routers.search")
-
 router = APIRouter(prefix="/search", tags=["search"])
-
 
 @router.post(
     "",

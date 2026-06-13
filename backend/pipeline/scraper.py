@@ -1,24 +1,3 @@
-# pipeline/scraper.py
-"""
-pipeline/scraper.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    ScraperStep — fetches URL, extracts clean text via trafilatura.
-
-Flow:
-    1. HTTP GET url (httpx, timeout from settings)
-    2. trafilatura.extract() → main article text
-    3. Fallback: favor_recall=True if first pass returns None
-    4. Write raw_text, title, content_length to state
-
-Failure modes handled:
-    - HTTP timeout         → mark_failed, stop pipeline
-    - HTTP error (4xx/5xx) → mark_failed
-    - Empty extraction     → mark_failed
-    - Content too large    → mark_failed
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 from __future__ import annotations
 
 import httpx
@@ -28,6 +7,12 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from config.settings import get_settings
 from pipeline.base import BaseStep
 from pipeline.state import PipelineState
+
+_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/120.0.0.0 Safari/537.36"
+)
 
 
 class ScraperStep(BaseStep):
@@ -67,12 +52,10 @@ class ScraperStep(BaseStep):
             )
             return state
 
-        # Guard: content too large
         if len(html) > settings.max_content_length:
             state.mark_failed(self.name, f"Content too large: {len(html)} bytes")
             return state
 
-        # Extract with trafilatura
         extracted = trafilatura.extract(
             html,
             include_comments=False,
@@ -80,7 +63,6 @@ class ScraperStep(BaseStep):
             no_fallback=False,
         )
 
-        # Fallback: broader extraction
         if not extracted:
             extracted = trafilatura.extract(html, favor_recall=True)
 
@@ -92,7 +74,6 @@ class ScraperStep(BaseStep):
             )
             return state
 
-        # Extract title
         meta = trafilatura.extract_metadata(html)
         title = meta.title if meta and meta.title else None
 
@@ -115,11 +96,10 @@ class ScraperStep(BaseStep):
         reraise=True,
     )
     async def _fetch_html(url: str, timeout: int) -> str:
-        """Fetch raw HTML. tenacity @retry works on async staticmethod."""
         async with httpx.AsyncClient(
             timeout=timeout,
             follow_redirects=True,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; BookmarkBrain/1.0)"},
+            headers={"User-Agent": _USER_AGENT},
         ) as client:
             response = await client.get(url)
             response.raise_for_status()

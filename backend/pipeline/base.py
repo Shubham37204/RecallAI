@@ -1,28 +1,6 @@
-# pipeline/base.py
-"""
-pipeline/base.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    BaseStep — abstract base class every pipeline step inherits.
-
-Why an ABC:
-    - Enforces consistent interface across all steps
-    - Pipeline orchestrator calls step.run(state) uniformly
-    - Easy to add/remove/reorder steps without touching orchestrator
-    - Testable in isolation — mock state, call run(), assert state
-
-Contract:
-    Every step MUST implement run(state: PipelineState) -> PipelineState
-    On success  → mutate state, return it
-    On failure  → call state.mark_failed(step_name, error), return it
-                  Never raise — let pipeline orchestrator handle
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-
 from observability.logger import get_logger
 from pipeline.state import PipelineState
 
@@ -40,7 +18,6 @@ class BaseStep(ABC):
                 return state
     """
 
-    # Subclasses set this — used in logs + error tracking
     name: str = "unnamed_step"
 
     def __init__(self) -> None:
@@ -62,8 +39,6 @@ class BaseStep(ABC):
             - Check state.has_error at start — skip if already failed
             - Log start and completion at INFO level
         """
-        ...
-
     def _skip_if_failed(self, state: PipelineState) -> bool:
         """
         Helper: returns True if pipeline already failed upstream.

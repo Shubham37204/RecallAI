@@ -1,22 +1,3 @@
-# pipeline/summarizer.py
-"""
-pipeline/summarizer.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    SummarizerStep — calls Groq LLM to produce a summary.
-
-Flow:
-    1. Read clean_text from state
-    2. Build prompt → send to Groq (llama3-8b-8192)
-    3. Parse response → write summary to state
-
-Failure modes handled:
-    - Groq API error     → mark_failed
-    - Empty response     → mark_failed
-    - Timeout            → mark_failed (tenacity retries 3x)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 from __future__ import annotations
 
 from groq import AsyncGroq

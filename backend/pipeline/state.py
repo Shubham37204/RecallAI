@@ -1,28 +1,3 @@
-# pipeline/state.py
-"""
-pipeline/state.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    PipelineState — single mutable object passed through
-    every pipeline step. Each step reads what it needs
-    and writes its output back here.
-
-Why a shared state object:
-    - Steps stay decoupled (scraper doesn't import summarizer)
-    - Easy to inspect mid-pipeline for debugging
-    - Single place to see all pipeline data
-
-Lifecycle:
-    API creates state with bookmark_id + url
-    scraper     → fills raw_text, title
-    cleaner     → fills clean_text
-    summarizer  → fills summary
-    tagger      → fills tags
-    embedder    → fills vector, qdrant_point_id
-    pipeline    → reads final state, writes to DB
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 from __future__ import annotations
 
 import uuid
@@ -49,30 +24,21 @@ class PipelineState:
         embedder   → vector, qdrant_point_id
     """
 
-    # ── Required (set at creation) ────────────────────────────────────────────
     bookmark_id: uuid.UUID
     url: str
     user_id: str = "" 
 
-    # ── Scraper output ────────────────────────────────────────────────────────
     raw_text: Optional[str] = None
     title: Optional[str] = None
     content_length: int = 0
 
-    # ── Cleaner output ────────────────────────────────────────────────────────
     clean_text: Optional[str] = None
 
-    # ── Summarizer output ─────────────────────────────────────────────────────
     summary: Optional[str] = None
 
-    # ── Tagger output ─────────────────────────────────────────────────────────
     tags: list[str] = field(default_factory=list)
-
-    # ── Embedder output ───────────────────────────────────────────────────────
     vector: Optional[list[float]] = None
     qdrant_point_id: Optional[uuid.UUID] = None
-
-    # ── Error tracking ────────────────────────────────────────────────────────
     error: Optional[str] = None
     failed_step: Optional[str] = None
 

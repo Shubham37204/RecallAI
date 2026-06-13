@@ -4,13 +4,6 @@ from config.settings import get_settings
 
 settings = get_settings()
 
-# ── Connection Pools ──────────────────────────────────────────────────────────
-# Two separate logical DBs on same Redis instance:
-#   _broker_pool  → DB 0 — Celery task queue (managed by Celery, not used directly)
-#   _cache_pool   → DB 1 — app cache + rate limiting (used directly by middleware)
-#
-# decode_responses=True → Redis returns str instead of bytes. Cleaner to work with.
-#
 _cache_pool: aioredis.Redis | None = None
 
 
@@ -42,10 +35,6 @@ async def close_redis() -> None:
         await _cache_pool.aclose()
         _cache_pool = None
 
-
-# ── Health Check ──────────────────────────────────────────────────────────────
-# Called by /health endpoint to verify Redis connectivity.
-#
 async def check_redis_health() -> bool:
     try:
         client = get_redis_cache()

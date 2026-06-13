@@ -1,25 +1,9 @@
-"""
-api/main.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    FastAPI application entry point.
-    Lifespan, CORS, routers, Swagger config.
-
-Auth in Slice 4:
-    Swagger UI shows Bearer token auth.
-    Dev: X-User-Id header OR Bearer JWT both work.
-    Prod: only Bearer JWT accepted.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse, Response
-
 from api.routers import health, bookmarks
 from config.settings import get_settings
 from observability.logger import get_logger, setup_logging
@@ -69,11 +53,6 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(bookmarks.router)
 app.include_router(search_router)
-
-# ── Swagger auth config ───────────────────────────────────────────────────────
-# Shows "Authorize" button in Swagger UI.
-# Dev: enter any string in X-User-Id field to test without real JWT.
-# Prod: enter real Clerk JWT token in BearerAuth field.
 
 def custom_openapi():
     if app.openapi_schema:

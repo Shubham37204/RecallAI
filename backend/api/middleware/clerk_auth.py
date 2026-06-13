@@ -1,35 +1,3 @@
-"""
-api/middleware/clerk_auth.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    Verifies Clerk JWT tokens on every protected request.
-    Extracts user_id from verified token claims.
-
-Why JWT verification on backend:
-    Frontend Clerk SDK issues signed JWT tokens.
-    Backend must verify the signature to trust the user_id.
-    Without verification, anyone can claim any user_id.
-
-How Clerk JWT verification works:
-    1. Clerk signs tokens with its RSA private key
-    2. Clerk publishes public keys at JWKS URL
-    3. We fetch those public keys once (cached)
-    4. We verify token signature using public key
-    5. If valid → extract sub (user_id) from claims
-    6. If invalid → 401 Unauthorized
-
-JWKS caching:
-    Public keys fetched from Clerk once, cached for 1 hour.
-    Keys rotate rarely — this is safe.
-    We do NOT call Clerk on every request — just verify locally.
-
-Dev bypass:
-    In development (APP_ENV=development), X-User-Id header
-    still works as fallback when no Bearer token present.
-    Production: only Bearer JWT accepted.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 import time
 from typing import Optional
 
@@ -38,14 +6,12 @@ from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from jose.exceptions import ExpiredSignatureError
-
 from config.settings import get_settings
 from observability.logger import get_logger
 
 logger = get_logger(__name__)
 settings = get_settings()
 
-# ── JWKS Cache ────────────────────────────────────────────────────────────────
 _jwks_cache: dict = {}
 _CACHE_TTL_SECONDS = 3600
 
@@ -112,7 +78,6 @@ async def verify_clerk_token(token: str) -> str:
         raise HTTPException(status_code=401, detail="Token verification failed")
 
 
-# ── Security scheme for Swagger UI ───────────────────────────────────────────
 _bearer_scheme = HTTPBearer(auto_error=False)
 
 

@@ -1,33 +1,3 @@
-"""
-observability/metrics.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    Defines all Prometheus metrics for the application.
-    Exposes /metrics endpoint for Prometheus scraping.
-
-Why Prometheus:
-    - Standard metrics format across the industry
-    - Works with Grafana dashboards out of the box
-    - Time-series data: track trends, set alerts
-    - Free, no vendor lock-in
-
-Metric types used:
-    Counter   → always increases (requests, errors, tasks)
-    Histogram → distribution with buckets (latency)
-    Gauge     → can go up/down (active connections, queue depth)
-
-Usage:
-    from observability.metrics import METRICS
-    METRICS["http_requests"].labels(method="POST", endpoint="/bookmarks", status=201).inc()
-    with METRICS["http_latency"].labels(endpoint="/bookmarks").time():
-        result = await do_work()
-
-In production:
-    Prometheus scrapes GET /metrics every 15s
-    Grafana visualizes the time-series data
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 from prometheus_client import (
     CollectorRegistry,
     Counter,
@@ -37,12 +7,8 @@ from prometheus_client import (
     CONTENT_TYPE_LATEST,
 )
 
-# ── Registry ──────────────────────────────────────────────────────────────────
-# Custom registry — avoids conflicts with default registry in tests
 registry = CollectorRegistry()
 
-
-# ── HTTP Metrics ──────────────────────────────────────────────────────────────
 
 http_requests_total = Counter(
     name="http_requests_total",
@@ -60,8 +26,6 @@ http_request_duration_seconds = Histogram(
 )
 
 
-# ── Bookmark Pipeline Metrics ─────────────────────────────────────────────────
-
 bookmark_jobs_total = Counter(
     name="bookmark_jobs_total",
     documentation="Total bookmark processing jobs by status (queued/completed/failed)",
@@ -77,8 +41,6 @@ bookmark_pipeline_duration_seconds = Histogram(
 )
 
 
-# ── Store Metrics ─────────────────────────────────────────────────────────────
-
 db_query_duration_seconds = Histogram(
     name="db_query_duration_seconds",
     documentation="Database query duration in seconds",
@@ -93,8 +55,6 @@ active_celery_tasks = Gauge(
     registry=registry,
 )
 
-
-# ── Helper ────────────────────────────────────────────────────────────────────
 
 def get_metrics_response() -> tuple[bytes, str]:
     """

@@ -10,8 +10,6 @@ def get_qdrant_client() -> AsyncQdrantClient:
     global _client
     if _client is None:
         settings = get_settings()
-        # https= must be False for local Docker — no TLS on port 6333
-        # https= True only for Qdrant Cloud which has api_key set
         use_https = settings.qdrant_api_key is not None and len(settings.qdrant_api_key) > 0
         _client = AsyncQdrantClient(
             host=settings.qdrant_host,

@@ -1,31 +1,3 @@
-# pipeline/pipeline.py
-"""
-pipeline/pipeline.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    BookmarkPipeline — orchestrates all steps in sequence.
-
-Flow:
-    scraper → cleaner → summarizer → tagger → embedder
-
-On success:
-    Returns completed PipelineState with all fields populated.
-
-On any step failure:
-    state.has_error = True
-    Remaining steps are skipped (each checks _skip_if_failed)
-    Pipeline returns state with error info for caller to handle.
-
-Caller (workers/tasks.py):
-    pipeline = BookmarkPipeline()
-    state = await pipeline.run(bookmark_id=bm_uuid, url=bm.url)
-    if state.has_error:
-        # mark DB as failed
-    else:
-        # write results to DB
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 from __future__ import annotations
 
 import uuid

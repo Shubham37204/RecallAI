@@ -1,46 +1,15 @@
-# api/middleware/rate_limit.py
-"""
-api/middleware/rate_limit.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    Redis-backed sliding window rate limiter as FastAPI dependency.
-
-Why dependency not middleware:
-    - Middleware runs on ALL routes — rate limit only needed on search
-    - Dependency is explicit, testable, reusable per-route
-    - Can inject different limits on different routes (search vs. other)
-    - Easier to mock in tests
-
-Algorithm: fixed window (per 60s bucket)
-    - Key: rate_limit:{user_id}:{window_bucket}
-    - window_bucket = unix_timestamp // window_seconds
-    - INCR + EXPIRE on each request
-    - If count > limit → 429
-
-Why fixed window not sliding:
-    - Sliding window needs sorted sets (higher Redis cost)
-    - Fixed window sufficient for this use case
-    - Burst at window boundary is acceptable tradeoff
-
-Redis key TTL = window_seconds * 2 (safe expiry buffer)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 from __future__ import annotations
 
 import time
-
 from fastapi import Depends, HTTPException, status
-
 from api.middleware.clerk_auth import get_current_user_id
 from observability.logger import get_logger
 from stores.redis.client import get_redis_cache
 
 logger = get_logger("api.rate_limit")
 
-# Search-specific limits (set at Slice 6 design)
-SEARCH_RATE_LIMIT = 20       # requests
-SEARCH_RATE_WINDOW = 60      # seconds
+SEARCH_RATE_LIMIT = 20      
+SEARCH_RATE_WINDOW = 60      
 
 
 def _window_bucket(window_seconds: int) -> int:
@@ -75,7 +44,6 @@ async def check_search_rate_limit(
     try:
         count = await redis.incr(key)
 
-        # Set TTL on first request in window
         if count == 1:
             await redis.expire(key, SEARCH_RATE_WINDOW * 2)
 
@@ -106,9 +74,8 @@ async def check_search_rate_limit(
         )
 
     except HTTPException:
-        raise  # re-raise 429, don't swallow
+        raise 
     except Exception as e:
-        # Redis down — fail open (don't block users for infra failure)
         logger.error(
             "rate_limit.redis_error",
             user_id=user_id,

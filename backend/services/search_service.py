@@ -1,32 +1,3 @@
-# services/search_service.py
-"""
-services/search_service.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    SearchService — embeds query, searches Qdrant, joins Postgres.
-
-Flow:
-    1. Embed query text → 384-dim vector (run_in_executor, non-blocking)
-    2. Qdrant vector search → top-k scored point IDs filtered by user_id
-    3. Fetch matching Bookmark rows from Postgres by IDs
-    4. Preserve Qdrant score order in final result
-
-Why join Postgres after Qdrant:
-    - Qdrant payload holds stale data (tags/summary may update)
-    - Postgres is source of truth for bookmark metadata
-    - Qdrant is only for similarity ranking, not data storage
-
-Why filter user_id in Qdrant payload:
-    - Qdrant has no auth — must scope results to requesting user
-    - Payload filter applied server-side before returning hits
-    - Prevents cross-user data leakage
-
-Score threshold:
-    - Controlled by settings.similarity_threshold (default 0.3)
-    - Results below threshold discarded — avoids noise
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -34,6 +5,7 @@ import uuid
 from dataclasses import dataclass
 from functools import partial
 
+from qdrant_client.models import FieldCondition, Filter, MatchValue
 from sentence_transformers import SentenceTransformer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,7 +17,6 @@ from stores.qdrant.client import get_qdrant_client
 
 logger = get_logger("services.search")
 
-# Reuse same module-level model cache as embedder
 _model: SentenceTransformer | None = None
 
 
@@ -79,7 +50,7 @@ async def search_bookmarks(
 
     Args:
         session:  async DB session
-        user_id:  Clerk user ID — scopes results to this user only
+        user_id:  Clerk user ID — scopes Qdrant retrieval to this user only
         query:    natural language search query
         limit:    max results to return (capped at settings.search_max_results)
 
@@ -87,8 +58,6 @@ async def search_bookmarks(
         list of SearchResult ordered by similarity score descending
     """
     settings = get_settings()
-
-    # Cap limit defensively
     limit = min(limit, settings.search_max_results)
 
     logger.info(
@@ -98,7 +67,6 @@ async def search_bookmarks(
         limit=limit,
     )
 
-    # ── 1. Embed query ────────────────────────────────────────────────────────
     try:
         model = _get_model()
         loop = asyncio.get_running_loop()
@@ -107,11 +75,7 @@ async def search_bookmarks(
     except Exception as e:
         logger.error("search.embed_failed", user_id=user_id, error=str(e))
         raise
-
-    # ── 2. Qdrant vector search — filter by user_id in payload ───────────────
     try:
-        from qdrant_client.models import Filter, FieldCondition, MatchValue
-
         qdrant = get_qdrant_client()
         results = await qdrant.query_points(
             collection_name=settings.qdrant_collection_name,
@@ -122,10 +86,10 @@ async def search_bookmarks(
                 must=[
                     FieldCondition(
                         key="user_id",
-                        match=MatchValue(value=user_id),  # placeholder — real filter below
+                        match=MatchValue(value=user_id),
                     )
                 ]
-            ) if False else None,  # user_id filter applied post-fetch (see note)
+            ),
             with_payload=True,
         )
         hits = results.points
@@ -137,7 +101,6 @@ async def search_bookmarks(
         logger.info("search.no_hits", user_id=user_id)
         return []
 
-    # Extract bookmark_ids and scores from Qdrant hits
     qdrant_scores: dict[uuid.UUID, float] = {}
     for hit in hits:
         payload = hit.payload or {}
@@ -151,12 +114,11 @@ async def search_bookmarks(
     if not qdrant_scores:
         return []
 
-    # ── 3. Postgres fetch — user-scoped, batch by IDs ────────────────────────
     try:
         stmt = select(Bookmark).where(
             Bookmark.id.in_(qdrant_scores.keys()),
-            Bookmark.user_id == user_id,          # authoritative user scope
-            Bookmark.status == "completed",        # only fully processed
+            Bookmark.user_id == user_id,
+            Bookmark.status == "completed",
         )
         db_result = await session.execute(stmt)
         bookmarks = db_result.scalars().all()
@@ -164,20 +126,17 @@ async def search_bookmarks(
         logger.error("search.postgres_failed", user_id=user_id, error=str(e))
         raise
 
-    # ── 4. Build results ordered by Qdrant score ─────────────────────────────
-    search_results = []
-    for bm in bookmarks:
-        score = qdrant_scores.get(bm.id, 0.0)
-        search_results.append(SearchResult(
+    search_results = [
+        SearchResult(
             bookmark_id=bm.id,
             url=bm.url,
             title=bm.title,
             summary=bm.summary,
             tags=bm.tags or [],
-            score=score,
-        ))
-
-    # Sort by score descending (Qdrant returns sorted, but Postgres re-fetch loses order)
+            score=qdrant_scores.get(bm.id, 0.0),
+        )
+        for bm in bookmarks
+    ]
     search_results.sort(key=lambda r: r.score, reverse=True)
 
     logger.info(

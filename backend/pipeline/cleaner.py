@@ -1,23 +1,3 @@
-# pipeline/cleaner.py
-"""
-pipeline/cleaner.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    CleanerStep — normalizes raw_text into clean_text.
-
-Operations:
-    - collapse whitespace / newlines
-    - strip control characters
-    - truncate to chunk_size * 20 chars (enough for summarizer)
-    - write clean_text to state
-
-Why clean before LLM:
-    - Reduces token usage
-    - Removes noise that confuses summarizer
-    - Consistent input format across all URLs
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 from __future__ import annotations
 
 import re
@@ -42,20 +22,12 @@ class CleanerStep(BaseStep):
         settings = get_settings()
         text = state.raw_text
 
-        # Strip control characters (except newline/tab)
         text = re.sub(r"[^\S\n\t ]+", " ", text)
-
-        # Collapse 3+ newlines → double newline
         text = re.sub(r"\n{3,}", "\n\n", text)
-
-        # Collapse multiple spaces
         text = re.sub(r" {2,}", " ", text)
-
-        # Strip leading/trailing whitespace per line
         lines = [line.strip() for line in text.splitlines()]
         text = "\n".join(line for line in lines if line)
 
-        # Truncate — summarizer doesn't need full 5MB
         max_chars = settings.chunk_size * 20
         if len(text) > max_chars:
             text = text[:max_chars]

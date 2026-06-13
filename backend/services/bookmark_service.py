@@ -1,26 +1,3 @@
-"""
-services/bookmark_service.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Purpose:
-    All database operations for bookmarks.
-    Routes call this service — never touch DB directly.
-
-Why a service layer:
-    - Routes handle HTTP concerns (request/response)
-    - Services handle business logic + DB operations
-    - Separation means you can test service without HTTP
-    - If you swap DB tomorrow, only this file changes
-
-Operations:
-    create_bookmark  → insert new bookmark row, return id
-    get_bookmark     → fetch single bookmark by id
-    get_user_bookmarks → list all bookmarks for a user
-    update_status    → update pipeline status
-    update_after_pipeline → write AI results after processing
-    delete_bookmark  → soft delete (future) or hard delete
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 import uuid
 from datetime import datetime, timezone
 
@@ -52,8 +29,8 @@ async def create_bookmark(
         status="pending",
     )
     session.add(bookmark)
-    await session.flush()   # flush to get DB-generated fields (created_at)
-                            # commit happens automatically via get_db_session
+    await session.flush()  
+                            
 
     logger.info(
         "bookmark.created",
