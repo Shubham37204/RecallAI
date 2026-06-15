@@ -33,10 +33,14 @@ export function SearchResultCard({ result }: SearchResultCardProps) {
         </p>
       )}
 
-      {result.tags.length > 0 && (
+      {(result.tags ?? []).length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {result.tags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs px-2 py-0.5 font-normal">
+          {(result.tags ?? []).map((tag) => (
+            <Badge
+              key={tag}
+              variant="secondary"
+              className="text-xs px-2 py-0.5 font-normal"
+            >
               {tag}
             </Badge>
           ))}

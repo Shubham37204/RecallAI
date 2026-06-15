@@ -29,7 +29,7 @@ export interface SearchResult {
   url: string;
   title: string | null;
   summary: string | null;
-  tags: string[];
+  tags: string[] | null;
   score: number;
 }
 
