@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+_this_file = Path(__file__).resolve()         
+_backend_dir = str(_this_file.parent.parent)   
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 from workers.celery_app import celery_app
 from stores.postgres.client import get_session_factory
 from services.bookmark_service import (
@@ -6,13 +14,7 @@ from services.bookmark_service import (
 )
 from observability.logger import get_logger
 import asyncio
-import sys
 import uuid
-from pathlib import Path
-
-_backend_dir = str(Path(__file__).resolve().parents[1])
-if _backend_dir not in sys.path:
-    sys.path.insert(0, _backend_dir)
 
 
 logger = get_logger(__name__)
