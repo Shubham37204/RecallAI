@@ -1,26 +1,31 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { JetBrains_Mono } from "next/font/google";
-import { cn } from "@/lib/utils";
 
-const jetbrainsMono = JetBrains_Mono({subsets:['latin'],variable:'--font-mono'});
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
   title: "Bookmark Brain",
-  description: "Save and search your bookmarks with AI",
+  description: "Save links. Find knowledge.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
-      <html lang="en" className={cn("font-mono", jetbrainsMono.variable)}>
-        <body>{children}</body>
+      <html lang="en" suppressHydrationWarning>
+        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+          {children}
+        </body>
       </html>
     </ClerkProvider>
   );
