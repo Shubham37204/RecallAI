@@ -16,6 +16,7 @@ from services.bookmark_service import (
     create_bookmark,
     get_bookmark,
     get_user_bookmarks,
+    delete_bookmark,
 )
 from workers.tasks import process_bookmark_task
 
@@ -113,3 +114,15 @@ async def get_bookmark_endpoint(
         raise HTTPException(status_code=404, detail="Bookmark not found")
 
     return BookmarkResponse.model_validate(bookmark)
+
+@router.delete("/{bookmark_id}", status_code=204)
+async def delete_bookmark_endpoint(
+    bookmark_id: uuid.UUID,
+    user_id: str = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    deleted = await delete_bookmark(session, bookmark_id, user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Bookmark not found")
+    await session.commit()
+    logger.info("bookmark.deleted", bookmark_id=str(bookmark_id), user_id=user_id)

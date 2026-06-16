@@ -1,7 +1,4 @@
 // types/bookmark.ts
-// Matches backend Pydantic schemas exactly.
-// Update here if backend response shapes change.
-
 export type BookmarkStatus = "pending" | "processing" | "completed" | "failed";
 
 export interface Bookmark {
@@ -10,7 +7,7 @@ export interface Bookmark {
   title: string | null;
   status: BookmarkStatus;
   summary: string | null;
-  tags: string[];
+  tags: string[] | null;
   created_at: string;
   updated_at: string;
   error_message: string | null;
@@ -20,8 +17,8 @@ export interface Bookmark {
 
 export interface BookmarkCreateResponse {
   id: string;
-  url: string;
   status: BookmarkStatus;
+  message: string;
 }
 
 export interface SearchResult {
@@ -37,4 +34,11 @@ export interface SearchResponse {
   query: string;
   total: number;
   results: SearchResult[];
+}
+
+export interface BookmarkStats {
+  total: number;
+  completed: number;
+  pending: number;
+  failed: number;
 }

@@ -161,3 +161,22 @@ async def update_bookmark_after_pipeline(
         tag_count=len(tags) if tags else 0,
     )
     return bookmark
+
+async def delete_bookmark(
+    session: AsyncSession,
+    bookmark_id: uuid.UUID,
+    user_id: str,
+) -> bool:
+    bookmark = await get_bookmark(session, bookmark_id, user_id)
+    if not bookmark:
+        return False
+    # Delete Qdrant vector if exists
+    if bookmark.qdrant_point_id:
+        from stores.qdrant.client import get_qdrant_client
+        client = get_qdrant_client()
+        await client.delete(
+            collection_name="bookmarks",
+            points_selector=[str(bookmark.qdrant_point_id)],
+        )
+    await session.delete(bookmark)
+    return True
