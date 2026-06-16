@@ -1,6 +1,11 @@
+"""
+pipeline/summarizer.py
+Groq errors are classified and stored in state.error
+so tasks.py can write a user-facing error_message to Postgres.
+"""
 from __future__ import annotations
 
-from groq import AsyncGroq
+from groq import AsyncGroq, RateLimitError, APIStatusError
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from config.settings import get_settings
@@ -39,7 +44,8 @@ class SummarizerStep(BaseStep):
         if self._skip_if_failed(state):
             return state
 
-        self.logger.info("step.summarizer.started", bookmark_id=str(state.bookmark_id))
+        self.logger.info("step.summarizer.started",
+                         bookmark_id=str(state.bookmark_id))
 
         if not state.clean_text:
             state.mark_failed(self.name, "No clean_text available for summarization")
@@ -47,8 +53,34 @@ class SummarizerStep(BaseStep):
 
         try:
             summary = await self._call_groq(state.clean_text)
+        except RateLimitError as e:
+            # Groq free tier: 30 RPM — surface this clearly to user
+            state.mark_failed(
+                self.name,
+                "GROQ_RATE_LIMIT: AI summarization limit reached. "
+                "Please wait a minute before saving more bookmarks.",
+            )
+            self.logger.warning(
+                "step.summarizer.rate_limited",
+                bookmark_id=str(state.bookmark_id),
+                error=str(e),
+            )
+            return state
+        except APIStatusError as e:
+            state.mark_failed(
+                self.name,
+                f"GROQ_SERVICE_ERROR: AI service returned {e.status_code}. "
+                "Please try again in a moment.",
+            )
+            self.logger.error(
+                "step.summarizer.api_error",
+                bookmark_id=str(state.bookmark_id),
+                status_code=e.status_code,
+                error=str(e),
+            )
+            return state
         except Exception as e:
-            state.mark_failed(self.name, f"Groq API error: {e}")
+            state.mark_failed(self.name, f"GROQ_SERVICE_ERROR: {e}")
             self.logger.error(
                 "step.summarizer.failed",
                 bookmark_id=str(state.bookmark_id),
@@ -61,7 +93,6 @@ class SummarizerStep(BaseStep):
             return state
 
         state.summary = summary.strip()
-
         self.logger.info(
             "step.summarizer.completed",
             bookmark_id=str(state.bookmark_id),
@@ -87,6 +118,6 @@ class SummarizerStep(BaseStep):
                 {"role": "user", "content": _USER_TEMPLATE.format(text=text)},
             ],
         )
-
         content = response.choices[0].message.content
         return content or ""
+    

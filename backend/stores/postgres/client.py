@@ -1,3 +1,16 @@
+"""
+stores/postgres/client.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Pool size tuned for Supabase free tier:
+    session pooler limit = 15 connections
+    pool_size=3, max_overflow=2 → max 5 per process
+    leaves headroom for uvicorn + celery running simultaneously
+
+If pool is exhausted, classify_db_error maps it to
+SUPABASE_POOL_EXHAUSTED with a user-facing message.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+
 from collections.abc import AsyncGenerator
 
 from sqlalchemy import text
@@ -25,9 +38,15 @@ def get_engine():
         settings = get_settings()
         _engine = create_async_engine(
             settings.database_url,
-            pool_size=10,
-            max_overflow=20,
-            pool_pre_ping=True,
+            # Tuned for Supabase free tier (15 connection limit):
+            # uvicorn process: pool_size=3, max_overflow=2 → max 5
+            # celery worker:   pool_size=3, max_overflow=2 → max 5
+            # leaves 5 for Supabase internal + other tools
+            pool_size=3,
+            max_overflow=2,
+            pool_pre_ping=True,       # detect stale connections before use
+            pool_recycle=1800,        # recycle connections every 30 min
+            pool_timeout=10,          # fail fast if no connection available
             echo=settings.app_debug,
         )
     return _engine
@@ -45,13 +64,19 @@ def get_session_factory():
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+    from api.errors import classify_db_error
     factory = get_session_factory()
     async with factory() as session:
         try:
             yield session
             await session.commit()
-        except Exception:
+        except Exception as exc:
             await session.rollback()
+            # Re-raise as AppError if it's a known DB error
+            # so FastAPI exception handler formats it properly
+            msg = str(exc).lower()
+            if any(k in msg for k in ("emaxconnsession", "max clients", "connection")):
+                raise classify_db_error(exc) from exc
             raise
 
 
@@ -63,3 +88,4 @@ async def check_postgres_health() -> bool:
             return True
     except Exception:
         return False
+    

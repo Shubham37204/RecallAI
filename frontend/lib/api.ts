@@ -1,12 +1,49 @@
 // lib/api.ts
+// Parses structured error responses from backend.
+// Every AppError returns { error_code, category, message, action, retryable }.
+// Generic errors fall back to HTTP status text.
+
 import type {
   Bookmark,
   BookmarkCreateResponse,
-  BookmarkStats,
   SearchResponse,
 } from "@/types/bookmark";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+// ── Structured error from backend ─────────────────────────────────────────────
+
+export interface ApiError {
+  error_code: string;
+  category: "transient" | "quota" | "degraded";
+  message: string;
+  action: string;
+  retryable: boolean;
+}
+
+export class AppApiError extends Error {
+  constructor(
+    public readonly apiError: ApiError,
+    public readonly status: number
+  ) {
+    super(apiError.message);
+  }
+
+  /** Full user-facing string: message + action hint */
+  get userMessage(): string {
+    return `${this.apiError.message} ${this.apiError.action}`;
+  }
+
+  get isQuota(): boolean {
+    return this.apiError.category === "quota";
+  }
+
+  get isRetryable(): boolean {
+    return this.apiError.retryable;
+  }
+}
+
+// ── Core fetch wrapper ────────────────────────────────────────────────────────
 
 async function fetchWithAuth<T>(
   path: string,
@@ -25,14 +62,43 @@ async function fetchWithAuth<T>(
   if (res.status === 204) return undefined as T;
 
   if (!res.ok) {
-    const detail = await res.json().catch(() => ({}));
-    throw new Error(
-      detail?.detail?.message ?? detail?.detail ?? `HTTP ${res.status}`
-    );
+    const body = await res.json().catch(() => ({}));
+
+    // Structured AppError from backend
+    if (body?.error_code) {
+      throw new AppApiError(body as ApiError, res.status);
+    }
+
+    // FastAPI validation error (422)
+    if (body?.detail) {
+      const detail =
+        typeof body.detail === "string"
+          ? body.detail
+          : Array.isArray(body.detail)
+          ? body.detail.map((d: { msg: string }) => d.msg).join(", ")
+          : "Invalid request";
+      throw new Error(detail);
+    }
+
+    throw new Error(`HTTP ${res.status}`);
   }
 
   return res.json() as Promise<T>;
 }
+
+// ── Error message helper for hooks ────────────────────────────────────────────
+
+export function getErrorMessage(e: unknown): string {
+  if (e instanceof AppApiError) {
+    return e.userMessage;
+  }
+  if (e instanceof Error) {
+    return e.message;
+  }
+  return "An unexpected error occurred.";
+}
+
+// ── Bookmarks ─────────────────────────────────────────────────────────────────
 
 export async function getBookmarks(token: string): Promise<Bookmark[]> {
   return fetchWithAuth<Bookmark[]>("/bookmarks", token);
@@ -57,6 +123,8 @@ export async function deleteBookmark(
   });
 }
 
+// ── Search ────────────────────────────────────────────────────────────────────
+
 export async function searchBookmarks(
   token: string,
   query: string,
@@ -66,17 +134,4 @@ export async function searchBookmarks(
     method: "POST",
     body: JSON.stringify({ q: query, limit }),
   });
-}
-
-export async function getBookmarkStats(
-  token: string
-): Promise<BookmarkStats> {
-  const bookmarks = await getBookmarks(token);
-  const total = bookmarks.length;
-  const completed = bookmarks.filter((b) => b.status === "completed").length;
-  const pending = bookmarks.filter(
-    (b) => b.status === "pending" || b.status === "processing"
-  ).length;
-  const failed = bookmarks.filter((b) => b.status === "failed").length;
-  return { total, completed, pending, failed };
 }

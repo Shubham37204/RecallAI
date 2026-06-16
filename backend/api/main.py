@@ -19,6 +19,9 @@ from observability.metrics import (
 from stores.postgres.client import get_engine
 from stores.qdrant.client import close_qdrant, ensure_collection
 from stores.redis.client import close_redis
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from api.errors import register_error_handlers
 
 settings = get_settings()
 logger = get_logger(__name__)
@@ -27,7 +30,8 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     setup_logging()
-    logger.info("app.starting", env=settings.app_env, version=settings.app_version)
+    logger.info("app.starting", env=settings.app_env,
+                version=settings.app_version)
 
     try:
         await ensure_collection()
@@ -56,7 +60,7 @@ app = FastAPI(
     redoc_url="/redoc" if settings.is_development else None,
     lifespan=lifespan,
 )
-
+register_error_handlers(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,

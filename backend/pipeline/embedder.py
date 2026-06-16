@@ -1,3 +1,8 @@
+"""
+pipeline/embedder.py
+HF rate limits and Qdrant failures are classified and stored
+in state.error with user-facing error codes.
+"""
 from __future__ import annotations
 
 import asyncio
@@ -24,6 +29,17 @@ def _get_model() -> SentenceTransformer:
     return _model
 
 
+def _classify_hf_error(exc: Exception) -> str:
+    """Return user-facing error string for HuggingFace failures."""
+    msg = str(exc).lower()
+    if "rate limit" in msg or "429" in msg or "too many" in msg:
+        return (
+            "HF_RATE_LIMIT: Embedding model rate limit reached. "
+            "Set HF_TOKEN in your .env for higher limits, or wait a few minutes."
+        )
+    return f"HF_MODEL_UNAVAILABLE: Embedding generation failed: {exc}"
+
+
 class EmbedderStep(BaseStep):
     name = "embedder"
 
@@ -38,17 +54,20 @@ class EmbedderStep(BaseStep):
             state.mark_failed(self.name, "No clean_text to embed")
             return state
 
+        # ── Generate embedding ────────────────────────────────────────────────
         try:
             model = _get_model()
             loop = asyncio.get_running_loop()
             encode_fn = partial(
                 model.encode,
                 state.clean_text,
-                normalize_embeddings=True,  
+                normalize_embeddings=True,
             )
-            vector: list[float] = (await loop.run_in_executor(None, encode_fn)).tolist()
+            vector: list[float] = (
+                await loop.run_in_executor(None, encode_fn)
+            ).tolist()
         except Exception as e:
-            state.mark_failed(self.name, f"Embedding generation failed: {e}")
+            state.mark_failed(self.name, _classify_hf_error(e))
             self.logger.error(
                 "step.embedder.encode_failed",
                 bookmark_id=str(state.bookmark_id),
@@ -60,10 +79,12 @@ class EmbedderStep(BaseStep):
         if len(vector) != settings.embedding_dimension:
             state.mark_failed(
                 self.name,
-                f"Vector dimension mismatch: got {len(vector)}, expected {settings.embedding_dimension}",
+                f"Vector dimension mismatch: got {len(vector)}, "
+                f"expected {settings.embedding_dimension}",
             )
             return state
 
+        # ── Upsert to Qdrant ──────────────────────────────────────────────────
         point_id = uuid.uuid4()
         try:
             await self._upsert_to_qdrant(
@@ -72,7 +93,16 @@ class EmbedderStep(BaseStep):
                 state=state,
             )
         except Exception as e:
-            state.mark_failed(self.name, f"Qdrant upsert failed: {e}")
+            msg = str(e).lower()
+            if "connect" in msg or "refused" in msg or "unavailable" in msg:
+                user_msg = (
+                    "QDRANT_UNAVAILABLE: Vector search is unavailable. "
+                    "Start Qdrant with: docker start bookmark_qdrant"
+                )
+            else:
+                user_msg = f"QDRANT_UNAVAILABLE: Qdrant upsert failed: {e}"
+
+            state.mark_failed(self.name, user_msg)
             self.logger.error(
                 "step.embedder.qdrant_failed",
                 bookmark_id=str(state.bookmark_id),
@@ -122,3 +152,4 @@ class EmbedderStep(BaseStep):
                 )
             ],
         )
+        
