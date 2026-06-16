@@ -1,9 +1,62 @@
+"""
+stores/postgres/models.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Two tables:
+    User     — one row per Clerk user, created on first bookmark save
+    Bookmark — one row per bookmark, FK → users.id with CASCADE delete
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+
 import uuid
 from datetime import datetime
-from sqlalchemy import DateTime, Float, String, Text, func
+
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from stores.postgres.client import Base
+
+
+class User(Base):
+    """
+    Minimal user record — created on first bookmark save.
+    No Clerk webhooks needed: upserted from JWT claims.
+
+    Primary key = Clerk user_id (e.g. user_3FAKfjku...)
+    Email and name are best-effort from JWT — may be None.
+    """
+
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(
+        String(255),
+        primary_key=True,  # Clerk user_id
+    )
+    email: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    name: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    # Relationship — allows user.bookmarks ORM access if needed
+    bookmarks: Mapped[list["Bookmark"]] = relationship(
+        "Bookmark",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="noload",  # never auto-load — always query explicitly
+    )
+
+    def __repr__(self) -> str:
+        return f"<User id={self.id} email={self.email}>"
+
 
 class Bookmark(Base):
     """
@@ -11,15 +64,16 @@ class Bookmark(Base):
     One row per bookmark per user.
 
     Lifecycle:
-        created  → user submits URL
-        pending  → celery task queued
+        created    → user submits URL
+        pending    → celery task queued
         processing → pipeline running
-        completed → summary/tags/embeddings stored
-        failed   → pipeline error, check error_message
+        completed  → summary/tags/embeddings stored
+        failed     → pipeline error, check error_message
     """
 
     __tablename__ = "bookmarks"
 
+    # ── Identity ──────────────────────────────────────────────────────────────
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -27,54 +81,38 @@ class Bookmark(Base):
     )
     user_id: Mapped[str] = mapped_column(
         String(255),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,          
+        index=True,
     )
 
-    url: Mapped[str] = mapped_column(
-        Text,
-        nullable=False,
-    )
-    title: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,       
-    )
+    # ── Input ─────────────────────────────────────────────────────────────────
+    url: Mapped[str] = mapped_column(Text, nullable=False)
+    title: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-
+    # ── Pipeline status ───────────────────────────────────────────────────────
     status: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
         default="pending",
         index=True,
     )
-    error_message: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,       
-    )
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # ── AI output ─────────────────────────────────────────────────────────────
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    tags: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
 
-    summary: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,       
-    )
-    tags: Mapped[list[str] | None] = mapped_column(
-        ARRAY(String),
-        nullable=True,        
-    )
-
+    # ── Vector reference ──────────────────────────────────────────────────────
     qdrant_point_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        nullable=True,
+        UUID(as_uuid=True), nullable=True
     )
 
-    raw_content: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-    )
-    content_length: Mapped[int | None] = mapped_column(
-        nullable=True,
-    )
+    # ── Scraped content ───────────────────────────────────────────────────────
+    raw_content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content_length: Mapped[int | None] = mapped_column(nullable=True)
 
+    # ── Timestamps ────────────────────────────────────────────────────────────
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -87,9 +125,16 @@ class Bookmark(Base):
         nullable=False,
     )
     completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True,        
+        DateTime(timezone=True), nullable=True
+    )
+
+    # ── Relationship ──────────────────────────────────────────────────────────
+    user: Mapped["User"] = relationship(
+        "User",
+        back_populates="bookmarks",
+        lazy="noload",
     )
 
     def __repr__(self) -> str:
         return f"<Bookmark id={self.id} status={self.status} url={self.url[:50]}>"
+    

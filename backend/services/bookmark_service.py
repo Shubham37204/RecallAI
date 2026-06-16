@@ -1,27 +1,66 @@
+"""
+services/bookmark_service.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+All DB operations for bookmarks and users.
+Routes call this — never touch DB directly from routers.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+
 import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from observability.logger import get_logger
-from stores.postgres.models import Bookmark
+from stores.postgres.models import Bookmark, User
 
 logger = get_logger(__name__)
 
+
+# ── User ──────────────────────────────────────────────────────────────────────
+
+async def upsert_user(
+    session: AsyncSession,
+    user_id: str,
+    email: str | None = None,
+    name: str | None = None,
+) -> None:
+    """
+    Insert user if not exists. No-op if already present.
+    Called before every bookmark creation — no webhooks needed.
+
+    Uses INSERT ... ON CONFLICT DO NOTHING so it's safe to call
+    on every request without extra SELECT round-trip.
+    """
+    stmt = (
+        pg_insert(User)
+        .values(id=user_id, email=email, name=name)
+        .on_conflict_do_nothing(index_elements=["id"])
+    )
+    await session.execute(stmt)
+    logger.debug("user.upserted", user_id=user_id)
+
+
+# ── Bookmarks ─────────────────────────────────────────────────────────────────
 
 async def create_bookmark(
     session: AsyncSession,
     user_id: str,
     url: str,
+    email: str | None = None,
+    name: str | None = None,
 ) -> Bookmark:
     """
-    Insert new bookmark with status=pending.
-    Returns the created Bookmark ORM object.
+    Upsert user then insert bookmark with status=pending.
 
-    Called by: POST /bookmarks route
-    Next step: Celery task queued with returned bookmark.id
+    email/name are best-effort from JWT claims — may be None.
+    User row is created here on first save; no separate signup flow needed.
     """
+    # Ensure user exists before FK insert
+    await upsert_user(session, user_id, email=email, name=name)
+
     bookmark = Bookmark(
         id=uuid.uuid4(),
         user_id=user_id,
@@ -29,8 +68,7 @@ async def create_bookmark(
         status="pending",
     )
     session.add(bookmark)
-    await session.flush()  
-                            
+    await session.flush()
 
     logger.info(
         "bookmark.created",
@@ -46,9 +84,8 @@ async def get_bookmark(
     user_id: str,
 ) -> Bookmark | None:
     """
-    Fetch single bookmark by id.
-    Scoped to user_id — users cannot see each other's bookmarks.
-    Returns None if not found or wrong user.
+    Fetch single bookmark by id, scoped to user_id.
+    Returns None if not found or wrong user — never leaks cross-user data.
     """
     result = await session.execute(
         select(Bookmark).where(
@@ -65,10 +102,7 @@ async def get_user_bookmarks(
     limit: int = 20,
     offset: int = 0,
 ) -> list[Bookmark]:
-    """
-    List all bookmarks for a user, newest first.
-    Paginated via limit/offset.
-    """
+    """List all bookmarks for a user, newest first. Paginated."""
     result = await session.execute(
         select(Bookmark)
         .where(Bookmark.user_id == user_id)
@@ -86,8 +120,7 @@ async def update_bookmark_status(
     error_message: str | None = None,
 ) -> Bookmark | None:
     """
-    Update pipeline status.
-    Called by Celery worker at each pipeline stage.
+    Update pipeline status. Called by Celery worker at each stage.
 
     Status flow:
         pending → processing → completed
@@ -108,7 +141,6 @@ async def update_bookmark_status(
         bookmark.completed_at = datetime.now(timezone.utc)
 
     await session.flush()
-
     logger.info(
         "bookmark.status_updated",
         bookmark_id=str(bookmark_id),
@@ -127,9 +159,8 @@ async def update_bookmark_after_pipeline(
     content_length: int | None = None,
 ) -> Bookmark | None:
     """
-    Write AI pipeline results back to Postgres.
-    Called by Celery worker after pipeline completes.
-    Sets status=completed automatically.
+    Write AI pipeline results to Postgres. Sets status=completed.
+    Called by Celery worker after pipeline completes successfully.
     """
     result = await session.execute(
         select(Bookmark).where(Bookmark.id == bookmark_id)
@@ -153,7 +184,6 @@ async def update_bookmark_after_pipeline(
     bookmark.completed_at = datetime.now(timezone.utc)
 
     await session.flush()
-
     logger.info(
         "bookmark.pipeline_complete",
         bookmark_id=str(bookmark_id),
@@ -162,15 +192,20 @@ async def update_bookmark_after_pipeline(
     )
     return bookmark
 
+
 async def delete_bookmark(
     session: AsyncSession,
     bookmark_id: uuid.UUID,
     user_id: str,
 ) -> bool:
+    """
+    Delete bookmark + Qdrant vector atomically.
+    Returns False if not found or wrong user.
+    """
     bookmark = await get_bookmark(session, bookmark_id, user_id)
     if not bookmark:
         return False
-    # Delete Qdrant vector if exists
+
     if bookmark.qdrant_point_id:
         from stores.qdrant.client import get_qdrant_client
         client = get_qdrant_client()
@@ -178,5 +213,11 @@ async def delete_bookmark(
             collection_name="bookmarks",
             points_selector=[str(bookmark.qdrant_point_id)],
         )
+
     await session.delete(bookmark)
+    logger.info(
+        "bookmark.deleted",
+        bookmark_id=str(bookmark_id),
+        user_id=user_id,
+    )
     return True
