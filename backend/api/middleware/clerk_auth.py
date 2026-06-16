@@ -45,9 +45,13 @@ async def _get_jwks() -> dict:
         raise HTTPException(status_code=503, detail="Authentication service unavailable")
 
 
-async def verify_clerk_token(token: str) -> str:
+async def verify_clerk_token(token: str, request: Request) -> str:
     """
-    Verify Clerk JWT and return user_id (sub claim).
+    Verify Clerk JWT, store full claims on request.state, return user_id.
+
+    Stores decoded payload at request.state.clerk_claims so downstream
+    code (e.g. bookmark router) can extract email/name without re-decoding.
+
     Raises 401 if invalid or expired.
     """
     jwks = await _get_jwks()
@@ -63,6 +67,9 @@ async def verify_clerk_token(token: str) -> str:
         user_id: Optional[str] = payload.get("sub")
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token: missing sub claim")
+
+        # Store full claims for downstream use — no re-decode needed
+        request.state.clerk_claims = payload
 
         return user_id
 
@@ -89,6 +96,7 @@ async def get_current_user_id(
     FastAPI dependency — verifies JWT and returns user_id.
 
     Dev mode: X-User-Id header accepted as fallback (no JWT needed).
+              clerk_claims will be empty dict in dev bypass mode.
     Production: only Bearer JWT accepted.
 
     Usage in routes:
@@ -98,9 +106,12 @@ async def get_current_user_id(
         dev_user_id = request.headers.get("X-User-Id")
         if dev_user_id and not credentials:
             logger.warning("clerk.auth.dev_bypass", user_id=dev_user_id)
+            # No JWT in dev bypass — set empty claims so downstream code
+            # doesn't crash on getattr(request.state, "clerk_claims", {})
+            request.state.clerk_claims = {}
             return dev_user_id
 
     if not credentials:
         raise HTTPException(status_code=401, detail="Authorization header required")
 
-    return await verify_clerk_token(credentials.credentials)
+    return await verify_clerk_token(credentials.credentials, request)
