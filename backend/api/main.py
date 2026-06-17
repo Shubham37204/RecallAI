@@ -1,3 +1,26 @@
+"""
+api/main.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FastAPI application entry point.
+
+Startup order:
+    1. Logging setup
+    2. Qdrant collection ensured (non-fatal if unavailable)
+    3. App ready
+
+Shutdown order:
+    1. Redis client closed
+    2. Qdrant client closed
+    3. Postgres engine disposed
+
+Error handling:
+    AppError   → structured JSON (error_code, message, action)
+    All others → 500 with log (global_exception_handler)
+    AppError handler registered AFTER global handler so it
+    takes precedence for known errors.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+
 import time
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -7,6 +30,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse, Response
 
+from api.errors import AppError, register_error_handlers
 from api.routers import bookmarks, health
 from api.routers.search import router as search_router
 from config.settings import get_settings
@@ -19,9 +43,6 @@ from observability.metrics import (
 from stores.postgres.client import get_engine
 from stores.qdrant.client import close_qdrant, ensure_collection
 from stores.redis.client import close_redis
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from api.errors import register_error_handlers
 
 settings = get_settings()
 logger = get_logger(__name__)
@@ -30,20 +51,22 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     setup_logging()
-    logger.info("app.starting", env=settings.app_env,
-                version=settings.app_version)
+    logger.info("app.starting", env=settings.app_env, version=settings.app_version)
 
     try:
         await ensure_collection()
         logger.info("qdrant.collection.ready",
                     collection=settings.qdrant_collection_name)
     except Exception as e:
-        logger.warning("qdrant.collection.unavailable_at_startup",
-                       error=str(e),
-                       note="Server starting anyway — /health will report qdrant degraded")
+        logger.warning(
+            "qdrant.collection.unavailable_at_startup",
+            error=str(e),
+            note="Server starting anyway — /health will report qdrant degraded",
+        )
 
     logger.info("app.ready", host=settings.app_host, port=settings.app_port)
     yield
+
     logger.info("app.shutting_down")
     await close_redis()
     await close_qdrant()
@@ -60,7 +83,40 @@ app = FastAPI(
     redoc_url="/redoc" if settings.is_development else None,
     lifespan=lifespan,
 )
+
+# ── Exception handlers ────────────────────────────────────────────────────────
+# Order matters: FastAPI uses the LAST registered handler for a given type.
+# Register generic 500 handler first, then AppError handler on top.
+# AppError wins for known errors; unknown exceptions fall to the 500 handler.
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    # Let AppError bubble up to its own handler — don't swallow it here
+    if isinstance(exc, AppError):
+        raise exc
+    logger.error(
+        "unhandled.exception",
+        path=str(request.url.path),
+        method=request.method,
+        error=str(exc),
+        exc_info=True,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error_code": "INTERNAL_ERROR",
+            "category": "transient",
+            "message": "An unexpected error occurred.",
+            "action": "Please try again. If this persists, check the server logs.",
+            "retryable": True,
+        },
+    )
+
+# Registers AppError handler — takes precedence over Exception handler above
 register_error_handlers(app)
+
+# ── Middleware ────────────────────────────────────────────────────────────────
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -92,11 +148,13 @@ async def prometheus_middleware(request: Request, call_next):
 
     return response
 
+# ── Routers ───────────────────────────────────────────────────────────────────
 
 app.include_router(health.router)
 app.include_router(bookmarks.router)
 app.include_router(search_router)
 
+# ── OpenAPI schema ────────────────────────────────────────────────────────────
 
 def custom_openapi():
     if app.openapi_schema:
@@ -134,24 +192,9 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
+# ── Metrics endpoint ──────────────────────────────────────────────────────────
 
 @app.get("/metrics", include_in_schema=False)
 async def metrics() -> Response:
     data, content_type = get_metrics_response()
     return Response(content=data, media_type=content_type)
-
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    logger.error(
-        "unhandled.exception",
-        path=str(request.url.path),
-        method=request.method,
-        error=str(exc),
-        exc_info=True,
-    )
-    return JSONResponse(
-        status_code=500,
-        content={"error": "internal_server_error",
-                 "message": "An unexpected error occurred"},
-    )
