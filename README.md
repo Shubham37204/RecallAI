@@ -159,7 +159,3 @@ Covers: pipeline steps, search isolation, auth, rate limiting, Postgres/Qdrant c
 All surface as structured JSON with user-facing messages — not raw 500s.
 
 ---
-
-<div align="center">
-Built by <strong>Shubham Bhardwaj</strong> · Full-stack AI Engineering Portfolio Project
-</div>
