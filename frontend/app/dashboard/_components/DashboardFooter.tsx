@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Command, Github } from "lucide-react";
+import { Command, ExternalLink } from "lucide-react";
 
 export function DashboardFooter() {
   return (
@@ -26,7 +26,7 @@ export function DashboardFooter() {
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 transition hover:text-zinc-950"
           >
-            <Github className="h-3.5 w-3.5" />
+            <ExternalLink className="h-3.5 w-3.5" />
             GitHub
           </a>
           <Link href="#" className="transition hover:text-zinc-950">
