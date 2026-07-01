@@ -1,38 +1,33 @@
 "use client";
 
-import { SignUpButton } from "@clerk/nextjs";
+import { SignUpButton, useUser } from "@clerk/nextjs";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
 
 export default function CTA() {
+  const { isLoaded, isSignedIn } = useUser();
+
   return (
-    <section className="w-full bg-white py-24 dark:bg-zinc-950 border-t border-zinc-100 dark:border-zinc-900">
+    <section className="w-full border-t border-zinc-200 bg-white py-20 dark:border-zinc-900 dark:bg-zinc-950">
       <div className="mx-auto max-w-3xl px-6 text-center">
-        {/* Subtle icon */}
-        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 mb-6">
-          <Sparkles className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
-        </div>
-
-        {/* Headline */}
-        <h2 className="text-3xl font-medium tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50 leading-tight">
-          Your knowledge should work for you.
+        <h2 className="text-3xl font-medium tracking-tight text-zinc-950 sm:text-4xl dark:text-zinc-50">
+          Start building your searchable second brain.
         </h2>
-
-        {/* Subhead */}
-        <p className="mt-4 text-sm text-zinc-505 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
-          Create your private workspace in seconds. Automatically index pages, extract takeaways, and build a second brain.
+        <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+          Save one useful link today. Let Bookmark Brain handle the reading, tagging, and recall.
         </p>
-
-        {/* CTA */}
-        <div className="mt-8 flex flex-col items-center justify-center gap-3">
-          <SignUpButton mode="modal">
-            <Button size="lg" className="rounded-md bg-zinc-900 hover:bg-zinc-800 text-white px-6 py-2.5 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200 text-xs font-semibold cursor-pointer">
-              Create Workspace
+        <div className="mt-8">
+          {isLoaded && isSignedIn ? (
+            <Button asChild size="lg" className="rounded-md bg-cyan-600 px-6 text-white hover:bg-cyan-700">
+              <Link href="/dashboard">Open Workspace</Link>
             </Button>
-          </SignUpButton>
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
-            Free forever tier. Upgrade anytime for higher indexing quotas.
-          </span>
+          ) : isLoaded ? (
+            <SignUpButton mode="modal">
+              <Button size="lg" className="rounded-md bg-cyan-600 px-6 text-white hover:bg-cyan-700">
+                Get Started
+              </Button>
+            </SignUpButton>
+          ) : null}
         </div>
       </div>
     </section>

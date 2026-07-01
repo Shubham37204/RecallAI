@@ -5,7 +5,7 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { useCallback, useState } from "react";
-import { searchBookmarks } from "@/lib/api";
+import { getErrorMessage, searchBookmarks } from "@/lib/api";
 import type { SearchResult } from "@/types/bookmark";
 
 interface UseSearchResult {
@@ -43,7 +43,7 @@ export function useSearch(): UseSearchResult {
         const data = await searchBookmarks(token, trimmed);
         setResults(data.results);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Search failed");
+        setError(getErrorMessage(e));
         setResults([]);
       } finally {
         setSearching(false);

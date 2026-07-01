@@ -1,259 +1,181 @@
 "use client";
 
-import { SignUpButton } from "@clerk/nextjs";
+import { SignUpButton, useUser } from "@clerk/nextjs";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Search, 
-  Plus, 
-  Folder, 
-  Tag, 
-  Sparkles, 
-  Compass, 
-  Bookmark, 
-  ArrowUpRight, 
-  Play, 
-  Clock, 
-  BookOpen, 
-  Command 
+import {
+  ExternalLink,
+  Link2,
+  MoreHorizontal,
+  Play,
+  Plus,
+  Search,
 } from "lucide-react";
 
 export default function Hero() {
-  const scrollToDemo = () => {
-    const demoElement = document.getElementById("search-demo");
-    if (demoElement) {
-      demoElement.scrollIntoView({ behavior: "smooth" });
+  const { isLoaded, isSignedIn } = useUser();
+
+  const scrollToProcess = () => {
+    const processElement = document.getElementById("process");
+    if (processElement) {
+      processElement.scrollIntoView({ behavior: "smooth" });
     }
   };
 
   return (
-    <section className="relative w-full bg-white pt-20 pb-16 dark:bg-zinc-950">
-      <div className="mx-auto flex max-w-5xl flex-col items-center px-6 text-center">
-        {/* Subtle Pill Badge */}
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50/50 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-400">
-          <Sparkles className="h-3.5 w-3.5 text-zinc-500" />
-          <span>Next-generation knowledge graph</span>
-        </div>
+    <section className="relative w-full overflow-hidden bg-white pt-20 pb-16 dark:bg-zinc-950">
+      <div className="absolute top-0 left-1/4 -z-10 h-[500px] w-[500px] rounded-full bg-cyan-100/20 blur-[128px] dark:bg-cyan-950/15" />
 
-        {/* Headline */}
+      <div className="relative z-10 mx-auto flex max-w-5xl flex-col items-center px-6 text-center">
         <h1 className="mt-6 text-4xl font-medium tracking-tight text-zinc-900 sm:text-6xl dark:text-zinc-50">
           Save links. <br />
-          <span className="text-zinc-400 dark:text-zinc-500">
+          <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text font-semibold text-transparent">
             Build a searchable knowledge system.
           </span>
         </h1>
 
-        {/* Subheading */}
-        <p className="mt-6 max-w-xl text-base leading-relaxed text-zinc-500 dark:text-zinc-400">
-          Bookmark Brain reads, summarizes, tags, and indexes everything you save.
-          Your second brain, actually searchable.
+        <p className="mt-6 max-w-xl text-base leading-relaxed text-zinc-600 dark:text-zinc-400">
+          Paste any article, documentation, paper, or repository. Bookmark Brain turns it into summaries, tags, and semantic search.
         </p>
 
-        {/* Call to Actions */}
         <div className="mt-8 flex items-center justify-center gap-3">
-          <SignUpButton mode="modal">
-            <Button size="lg" className="rounded-md bg-zinc-900 hover:bg-zinc-800 text-white px-5 py-2 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200">
-              Start Free
+          {isLoaded && isSignedIn ? (
+            <Button asChild size="lg" className="rounded-md bg-cyan-600 px-5 py-2 text-white hover:bg-cyan-700">
+              <Link href="/dashboard">Open Dashboard</Link>
             </Button>
-          </SignUpButton>
-          <Button 
-            variant="outline" 
-            size="lg" 
-            className="rounded-md border border-zinc-200 px-5 py-2 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-            onClick={scrollToDemo}
+          ) : isLoaded ? (
+            <SignUpButton mode="modal">
+              <Button size="lg" className="rounded-md bg-cyan-600 px-5 py-2 text-white hover:bg-cyan-700">
+                Start Free
+              </Button>
+            </SignUpButton>
+          ) : null}
+          <Button
+            variant="outline"
+            size="lg"
+            className="rounded-md border border-cyan-200 px-5 py-2 text-cyan-700 hover:bg-cyan-50/70 dark:border-cyan-900/60 dark:text-cyan-400 dark:hover:bg-cyan-950/20"
+            onClick={scrollToProcess}
           >
             <Play className="mr-1.5 h-3.5 w-3.5 fill-current" />
-            View Demo
+            See how it works
           </Button>
         </div>
       </div>
 
-      {/* Large Product Workspace Preview (60-70% width) */}
-      <div className="mx-auto mt-16 max-w-5xl px-6">
-        <div className="group relative rounded-xl border border-zinc-200/80 bg-zinc-50 p-2 dark:border-zinc-800/80 dark:bg-zinc-900/50">
-          {/* Mock Browser Header */}
-          <div className="mb-2 flex items-center justify-between border-b border-zinc-200/60 pb-2 px-2 dark:border-zinc-800/60">
+      <div className="relative z-10 mx-auto mt-16 max-w-5xl px-6">
+        <div className="group relative rounded-xl border border-cyan-100/80 bg-zinc-50/70 p-2 transition-all duration-500 hover:border-cyan-300 hover:shadow-[0_0_40px_-15px_rgba(8,145,178,0.2)] dark:border-cyan-950/80 dark:bg-zinc-900/30">
+          <div className="mb-2 flex items-center justify-between border-b border-zinc-200/60 px-2 pb-2 dark:border-zinc-800/60">
             <div className="flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-              <span className="h-3 w-3 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-              <span className="h-3 w-3 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+              <span className="h-3 w-3 rounded-full bg-rose-400" />
+              <span className="h-3 w-3 rounded-full bg-amber-400" />
+              <span className="h-3 w-3 rounded-full bg-emerald-400" />
             </div>
-            {/* Search Input Mock */}
-            <div className="flex h-6 w-80 items-center justify-between rounded-md border border-zinc-200/80 bg-white px-2 text-[11px] text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
-              <div className="flex items-center gap-1.5">
-                <Search className="h-3 w-3 text-zinc-400" />
-                <span>Ask anything in plain English...</span>
-              </div>
-              <div className="flex items-center gap-0.5 font-mono text-[9px]">
-                <kbd className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">⌘</kbd>
-                <kbd className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">K</kbd>
-              </div>
+            <div className="flex h-6 w-80 items-center gap-1.5 rounded-md border border-cyan-100 bg-white px-2 text-[11px] text-zinc-400 dark:border-cyan-900/50 dark:bg-zinc-950">
+              <Search className="h-3 w-3 text-cyan-600" />
+              <span>Ask your bookmarks...</span>
             </div>
-            <div className="w-12" /> {/* spacer for visual symmetry */}
+            <div className="w-12" />
           </div>
 
-          {/* Core Dashboard UI Container */}
-          <div className="grid h-[420px] w-full grid-cols-12 overflow-hidden rounded-lg bg-white dark:bg-zinc-950">
-            {/* 1. Sidebar */}
-            <aside className="col-span-3 hidden flex-col border-r border-zinc-100 p-3 sm:flex dark:border-zinc-900">
-              <div className="flex items-center gap-2 px-2 py-1 text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                <div className="flex h-5 w-5 items-center justify-center rounded bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-950">
-                  <Command className="h-3 w-3" />
+          <div className="h-[460px] overflow-hidden rounded-lg border border-cyan-50/70 bg-zinc-50 p-4 dark:border-cyan-950/50 dark:bg-zinc-950">
+            <div className="rounded-xl border border-zinc-200 bg-white p-4 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300">
+                  <Link2 className="h-3.5 w-3.5" />
                 </div>
-                <span>Workspace</span>
+                <div>
+                  <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-50">Save a URL</p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Build your AI knowledge base</p>
+                </div>
               </div>
-
-              {/* Sidebar Links */}
-              <nav className="mt-4 flex flex-col gap-0.5">
-                <span className="px-2 py-1 text-[10px] font-semibold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase">Library</span>
-                {[
-                  { icon: Bookmark, name: "All Bookmarks", count: 42 },
-                  { icon: Clock, name: "Recently Saved", count: 8 },
-                  { icon: Compass, name: "Discover", count: 0 },
-                ].map((item, idx) => (
-                  <div 
-                    key={idx} 
-                    className={`flex items-center justify-between rounded px-2 py-1.5 text-xs transition-colors cursor-pointer ${
-                      idx === 0 
-                        ? "bg-zinc-100/80 text-zinc-900 font-medium dark:bg-zinc-900 dark:text-zinc-100" 
-                        : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900/50 dark:hover:text-zinc-100"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <item.icon className="h-3.5 w-3.5" />
-                      <span>{item.name}</span>
-                    </div>
-                    {item.count > 0 && <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{item.count}</span>}
-                  </div>
-                ))}
-
-                <span className="mt-4 px-2 py-1 text-[10px] font-semibold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase">Collections</span>
-                {[
-                  { name: "Coding Resources", color: "text-blue-500" },
-                  { name: "Research Papers", color: "text-purple-500" },
-                  { name: "Product Design", color: "text-orange-500" },
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between rounded px-2 py-1.5 text-xs text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900/50 dark:hover:text-zinc-100 cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      <Folder className={`h-3.5 w-3.5 ${item.color}`} />
-                      <span>{item.name}</span>
-                    </div>
-                  </div>
-                ))}
-              </nav>
-            </aside>
-
-            {/* 2. Main List view */}
-            <main className="col-span-12 flex flex-col border-r border-zinc-100 sm:col-span-5 dark:border-zinc-900">
-              <div className="flex h-10 items-center justify-between border-b border-zinc-100 px-3 dark:border-zinc-900">
-                <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">All Bookmarks</span>
-                <Button variant="ghost" size="icon-xs" className="h-6 w-6">
-                  <Plus className="h-3.5 w-3.5 text-zinc-500" />
+              <div className="mt-3 flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-1.5 dark:border-zinc-800 dark:bg-zinc-950">
+                <span className="min-w-0 flex-1 truncate px-2 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
+                  https://www.pinecone.io/learn/retrieval-augmented-generation/
+                </span>
+                <Button size="xs" className="rounded-md bg-cyan-600 text-white hover:bg-cyan-700">
+                  <Plus className="h-3 w-3" />
+                  Save
                 </Button>
               </div>
+            </div>
 
-              {/* Mock items list */}
-              <div className="flex-1 divide-y divide-zinc-100 overflow-y-auto dark:divide-zinc-900">
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {[
+                ["Total", "42"],
+                ["Processed", "38"],
+                ["Processing", "3"],
+                ["Failed", "1"],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-lg border border-zinc-200 bg-white p-2 text-left dark:border-zinc-800 dark:bg-zinc-900">
+                  <p className="text-[9px] text-zinc-500 dark:text-zinc-400">{label}</p>
+                  <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">{value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-3 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="flex h-8 items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-2 dark:border-zinc-800 dark:bg-zinc-950">
+                <Search className="h-3.5 w-3.5 text-cyan-700 dark:text-cyan-300" />
+                <span className="text-[11px] text-zinc-400">Ask your bookmarks...</span>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {["docker compose", "agent memory", "vector databases"].map((item) => (
+                  <span key={item} className="rounded-full border border-zinc-200 px-2 py-0.5 text-[9px] text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-white text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="flex items-center justify-between border-b border-zinc-100 px-3 py-2 dark:border-zinc-800">
+                <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-50">Bookmark Library</p>
+                <span className="text-[10px] text-zinc-400">Newest first</span>
+              </div>
+              <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
                 {[
                   {
-                    title: "Zustand: Bearish state management library for React",
-                    url: "github.com/pmndrs/zustand",
-                    time: "10m ago",
-                    tags: ["React", "State"],
-                    active: true,
+                    title: "Retrieval Augmented Generation: What it is and how it works",
+                    domain: "pinecone.io",
+                    status: "Processing",
+                    tags: ["RAG", "Vector DB"],
                   },
                   {
-                    title: "An Interactive Guide to CSS Transitions & Animations",
-                    url: "joshwcomeau.com",
-                    time: "2h ago",
-                    tags: ["CSS", "Frontend"],
-                    active: false,
+                    title: "Docker Compose documentation for local services",
+                    domain: "docs.docker.com",
+                    status: "Processed",
+                    tags: ["Docker", "DevOps"],
                   },
-                  {
-                    title: "Notion's API: Designing stable integrations",
-                    url: "developers.notion.com",
-                    time: "1d ago",
-                    tags: ["API", "Backend"],
-                    active: false,
-                  },
-                ].map((item, idx) => (
-                  <div 
-                    key={idx} 
-                    className={`flex flex-col gap-1.5 p-3 text-left transition-colors cursor-pointer ${
-                      item.active 
-                        ? "bg-zinc-50/80 dark:bg-zinc-900/40" 
-                        : "hover:bg-zinc-50/40 dark:hover:bg-zinc-900/20"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-[10px] text-zinc-400 dark:text-zinc-500">
-                      <span>{item.url}</span>
-                      <span>{item.time}</span>
+                ].map((item) => (
+                  <div key={item.title} className="flex items-start gap-3 p-3">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[10px] font-semibold text-cyan-700 dark:border-zinc-800 dark:bg-zinc-950">
+                      {item.domain[0].toUpperCase()}
                     </div>
-                    <h4 className="text-xs font-medium leading-snug text-zinc-900 dark:text-zinc-100 line-clamp-2">
-                      {item.title}
-                    </h4>
-                    <div className="flex flex-wrap gap-1">
-                      {item.tags.map((tag) => (
-                        <Badge 
-                          key={tag} 
-                          variant="secondary" 
-                          className="rounded text-[9px] px-1 py-0 h-4 bg-zinc-100 text-zinc-600 border-none dark:bg-zinc-900 dark:text-zinc-400"
-                        >
-                          {tag}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-[10px] text-zinc-500 dark:text-zinc-400">{item.domain}</span>
+                        <Badge className="h-4 rounded-full border border-cyan-200 bg-cyan-50 px-1.5 py-0 text-[9px] text-cyan-700">
+                          {item.status}
                         </Badge>
-                      ))}
+                      </div>
+                      <p className="mt-1 line-clamp-1 text-xs font-semibold text-zinc-900 dark:text-zinc-50">{item.title}</p>
+                      <div className="mt-1 flex gap-1">
+                        {item.tags.map((tag) => (
+                          <span key={tag} className="rounded bg-zinc-100 px-1.5 py-0.5 text-[9px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-1 text-zinc-400">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      <MoreHorizontal className="h-3.5 w-3.5" />
                     </div>
                   </div>
                 ))}
               </div>
-            </main>
-
-            {/* 3. Detail Pane */}
-            <aside className="col-span-4 hidden flex-col p-4 sm:flex bg-zinc-50/30 dark:bg-zinc-900/10">
-              <div className="flex items-center justify-between border-b border-zinc-100/80 pb-2 dark:border-zinc-900">
-                <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">AI Analysis</span>
-                <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded">
-                  <Sparkles className="h-2.5 w-2.5" />
-                  Synced
-                </span>
-              </div>
-
-              {/* Summary detail */}
-              <div className="mt-3 flex flex-col gap-3">
-                <div>
-                  <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center justify-between">
-                    <span>Zustand State Library</span>
-                    <ArrowUpRight className="h-3 w-3 text-zinc-400" />
-                  </h3>
-                  <p className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-500 truncate">github.com/pmndrs/zustand</p>
-                </div>
-
-                <div className="rounded-lg border border-zinc-200/50 bg-white p-2.5 dark:border-zinc-800/50 dark:bg-zinc-950">
-                  <div className="flex items-center gap-1 text-[10px] font-medium text-zinc-800 dark:text-zinc-300">
-                    <BookOpen className="h-3 w-3 text-zinc-500" />
-                    <span>Summary</span>
-                  </div>
-                  <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-                    A small, fast, and scalable bearbones state-management solution using simplified flux principles. Has a comfy API based on hooks, doesn't boilerplate or opinionate.
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Key Takeaways</h4>
-                  <ul className="mt-1.5 space-y-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
-                    <li className="flex items-start gap-1.5">
-                      <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-zinc-900 dark:bg-zinc-400" />
-                      <span>Solves common React render-triggering issues without complex contexts.</span>
-                    </li>
-                    <li className="flex items-start gap-1.5">
-                      <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-zinc-900 dark:bg-zinc-400" />
-                      <span>Supports ephemeral state updates without triggering component refreshes.</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </aside>
+            </div>
           </div>
         </div>
       </div>

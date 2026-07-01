@@ -1,7 +1,7 @@
 // hooks/useBookmarks.ts
 import { useAuth } from "@clerk/nextjs";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { deleteBookmark, getBookmarks } from "@/lib/api";
+import { deleteBookmark, getBookmarks, getErrorMessage } from "@/lib/api";
 import type { Bookmark } from "@/types/bookmark";
 
 interface UseBookmarksResult {
@@ -18,6 +18,7 @@ export function useBookmarks(): UseBookmarksResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const initialLoadRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetch = useCallback(async () => {
     setError(null);
@@ -28,55 +29,57 @@ export function useBookmarks(): UseBookmarksResult {
       setBookmarks(data);
       return data;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load bookmarks");
+      setError(getErrorMessage(e));
       return [];
     } finally {
       setLoading(false);
     }
   }, [getToken]);
 
-  // Auto-poll every 5s if any bookmark is pending/processing
-  useEffect(() => {
-    fetch();
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
 
+  const startPolling = useCallback(() => {
+    stopPolling();
     pollingRef.current = setInterval(async () => {
-      const data = await fetch();
-      const hasActive = data.some(
-        (b) => b.status === "pending" || b.status === "processing"
+      const latest = await fetch();
+      const stillActive = latest.some(
+        (b) => b.status === "pending" || b.status === "processing",
       );
-      if (!hasActive && pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
+      if (!stillActive) stopPolling();
     }, 5000);
+  }, [fetch, stopPolling]);
 
+  const loadAndMaybePoll = useCallback(async () => {
+    const data = await fetch();
+    const hasActive = data.some(
+      (b) => b.status === "pending" || b.status === "processing",
+    );
+    if (hasActive) startPolling();
+    return data;
+  }, [fetch, startPolling]);
+
+  useEffect(() => {
+    initialLoadRef.current = setTimeout(() => {
+      void loadAndMaybePoll();
+    }, 0);
     return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    };
-  }, [fetch]);
-
-  // Restart polling when refresh is called
-  const refresh = useCallback(() => {
-    if (pollingRef.current) clearInterval(pollingRef.current);
-    setLoading(true);
-    fetch().then((data) => {
-      const hasActive = data.some(
-        (b) => b.status === "pending" || b.status === "processing"
-      );
-      if (hasActive) {
-        pollingRef.current = setInterval(async () => {
-          const latest = await fetch();
-          const stillActive = latest.some(
-            (b) => b.status === "pending" || b.status === "processing"
-          );
-          if (!stillActive && pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-          }
-        }, 5000);
+      if (initialLoadRef.current) {
+        clearTimeout(initialLoadRef.current);
       }
-    });
-  }, [fetch]);
+      stopPolling();
+    };
+  }, [loadAndMaybePoll, stopPolling]);
+
+  const refresh = useCallback(() => {
+    stopPolling();
+    setLoading(true);
+    void loadAndMaybePoll();
+  }, [loadAndMaybePoll, stopPolling]);
 
   const remove = useCallback(
     async (id: string) => {

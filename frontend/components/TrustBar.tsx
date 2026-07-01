@@ -11,12 +11,12 @@ import {
 
 export default function TrustBar() {
   const sources = [
-    { name: "Articles", icon: FileText },
-    { name: "Documentation", icon: BookOpen },
-    { name: "Videos", icon: Video },
-    { name: "Threads", icon: Hash },
-    { name: "Research Papers", icon: GraduationCap },
-    { name: "Bookmarks", icon: Link2 },
+    { name: "Articles", icon: FileText, color: "text-blue-500" },
+    { name: "Documentation", icon: BookOpen, color: "text-emerald-500" },
+    { name: "Videos", icon: Video, color: "text-rose-500" },
+    { name: "Threads", icon: Hash, color: "text-amber-550 dark:text-amber-450" },
+    { name: "Research Papers", icon: GraduationCap, color: "text-purple-500" },
+    { name: "Bookmarks", icon: Link2, color: "text-indigo-500" },
   ];
 
   return (
@@ -31,9 +31,9 @@ export default function TrustBar() {
             return (
               <div 
                 key={index} 
-                className="flex items-center gap-2 rounded-md border border-zinc-200/80 bg-zinc-50/50 px-3 py-1.5 text-xs text-zinc-600 dark:border-zinc-800/80 dark:bg-zinc-900/40 dark:text-zinc-400"
+                className="flex items-center gap-2 rounded-md border border-zinc-200/80 bg-zinc-50/50 px-3 py-1.5 text-xs text-zinc-650 dark:border-zinc-800/80 dark:bg-zinc-900/40 dark:text-zinc-400 hover:border-violet-300 dark:hover:border-violet-850 hover:bg-violet-50/10 dark:hover:bg-violet-950/10 transition-all duration-300"
               >
-                <Icon className="h-3.5 w-3.5 text-zinc-400" />
+                <Icon className={`h-3.5 w-3.5 ${source.color}`} />
                 <span className="font-medium">{source.name}</span>
               </div>
             );

@@ -75,7 +75,7 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
             # Re-raise as AppError if it's a known DB error
             # so FastAPI exception handler formats it properly
             msg = str(exc).lower()
-            if any(k in msg for k in ("emaxconnsession", "max clients", "connection")):
+            if any(k in msg for k in ("emaxconnsession", "max clients", "connection", "connect", "enotfound", "tenant/user")):
                 raise classify_db_error(exc) from exc
             raise
 

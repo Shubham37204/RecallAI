@@ -1,81 +1,56 @@
 "use client";
 
-import { Link2, Cpu, Database, Search } from "lucide-react";
+import { Link2, Search, Sparkles } from "lucide-react";
+
+const steps = [
+  {
+    title: "Save a URL",
+    desc: "Drop in an article, doc, paper, repository, or video link.",
+    icon: Link2,
+  },
+  {
+    title: "AI processes it",
+    desc: "Bookmark Brain extracts the useful context, summary, and tags.",
+    icon: Sparkles,
+  },
+  {
+    title: "Search naturally",
+    desc: "Ask for concepts, decisions, or examples without remembering filenames.",
+    icon: Search,
+  },
+];
 
 export default function ProcessTimeline() {
-  const steps = [
-    {
-      num: "01",
-      title: "Save a URL",
-      desc: "Paste any link into your workspace. We support articles, videos, and PDFs.",
-      icon: Link2,
-    },
-    {
-      num: "02",
-      title: "AI extracts content",
-      desc: "Our engine scrapes the page, bypassing ads and paywalls, to extract clean text.",
-      icon: Cpu,
-    },
-    {
-      num: "03",
-      title: "Generate embeddings",
-      desc: "The entire document is vectorized and mapped into your personal knowledge base.",
-      icon: Database,
-    },
-    {
-      num: "04",
-      title: "Search in natural language",
-      desc: "Ask conversational questions like 'What was Josh's advice on React renders?'",
-      icon: Search,
-    },
-  ];
-
   return (
     <section id="process" className="w-full bg-white py-16 dark:bg-zinc-950">
       <div className="mx-auto max-w-5xl px-6">
-        {/* Title */}
-        <div className="text-center mb-12">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-            Process Flow
-          </span>
-          <h3 className="mt-2 text-2xl font-medium tracking-tight text-zinc-900 dark:text-zinc-50">
-            How Bookmark Brain Works
-          </h3>
+        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-cyan-700 dark:text-cyan-400">
+              How it works
+            </p>
+            <h2 className="mt-3 text-2xl font-medium tracking-tight text-zinc-950 dark:text-zinc-50">
+              Three steps from link to knowledge.
+            </h2>
+          </div>
+          <p className="max-w-md text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+            The product does the heavy lifting after you save. No folder setup, tagging system, or manual cleanup required.
+          </p>
         </div>
 
-        {/* Timeline Items */}
-        <div className="relative mt-8">
-          {/* Connecting line for larger screens */}
-          <div className="absolute top-1/2 left-0 right-0 hidden h-px -translate-y-1/2 border-t border-dashed border-zinc-200 md:block dark:border-zinc-800" />
-
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
-            {steps.map((step, idx) => {
-              const Icon = step.icon;
-              return (
-                <div 
-                  key={idx} 
-                  className="relative flex flex-col items-center text-center bg-white p-4 dark:bg-zinc-950 z-10"
-                >
-                  {/* Step bubble */}
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
-                    <Icon className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
-                  </div>
-
-                  <span className="mt-4 font-mono text-xs font-semibold text-zinc-400 dark:text-zinc-500">
-                    Step {step.num}
-                  </span>
-
-                  <h4 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                    {step.title}
-                  </h4>
-
-                  <p className="mt-2 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
-                    {step.desc}
-                  </p>
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          {steps.map((step, index) => (
+            <div key={step.title} className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <div className="flex items-center justify-between">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300">
+                  <step.icon className="h-4 w-4" />
                 </div>
-              );
-            })}
-          </div>
+                <span className="font-mono text-xs text-zinc-400">0{index + 1}</span>
+              </div>
+              <h3 className="mt-5 text-sm font-semibold text-zinc-950 dark:text-zinc-50">{step.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{step.desc}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

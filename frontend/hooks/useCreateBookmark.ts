@@ -4,10 +4,11 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { useCallback, useState } from "react";
-import { createBookmark } from "@/lib/api";
+import { createBookmark, getErrorMessage } from "@/lib/api";
+import type { BookmarkCreateResponse } from "@/types/bookmark";
 
 interface UseCreateBookmarkResult {
-  submit: (url: string) => Promise<void>;
+  submit: (url: string) => Promise<BookmarkCreateResponse | null>;
   submitting: boolean;
   error: string | null;
 }
@@ -20,7 +21,7 @@ export function useCreateBookmark(onSuccess?: () => void): UseCreateBookmarkResu
   const submit = useCallback(
     async (url: string) => {
       const trimmed = url.trim();
-      if (!trimmed) return;
+      if (!trimmed) return null;
 
       setSubmitting(true);
       setError(null);
@@ -28,10 +29,12 @@ export function useCreateBookmark(onSuccess?: () => void): UseCreateBookmarkResu
       try {
         const token = await getToken();
         if (!token) throw new Error("Not authenticated");
-        await createBookmark(token, trimmed);
+        const bookmark = await createBookmark(token, trimmed);
         onSuccess?.();
+        return bookmark;
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to save bookmark");
+        setError(getErrorMessage(e));
+        return null;
       } finally {
         setSubmitting(false);
       }

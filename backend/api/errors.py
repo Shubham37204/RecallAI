@@ -69,6 +69,14 @@ ERRORS: dict[str, ErrorSpec] = {
         action="Please try again in a moment.",
         retryable=True,
     ),
+    "SUPABASE_PROJECT_NOT_FOUND": ErrorSpec(
+        code="SUPABASE_PROJECT_NOT_FOUND",
+        category=ErrorCategory.DEGRADED,
+        http_status=503,
+        message="Database project could not be found.",
+        action="Check DATABASE_URL. The Supabase project ref, pooler host, or database user appears to be wrong or the project was deleted.",
+        retryable=False,
+    ),
 
     # ── Redis / Upstash ───────────────────────────────────────────────────────
     "REDIS_QUOTA_EXCEEDED": ErrorSpec(
@@ -173,6 +181,8 @@ def classify_db_error(exc: Exception) -> AppError:
     msg = str(exc).lower()
     if "emaxconnsession" in msg or "max clients" in msg or "pool_size" in msg:
         return AppError("SUPABASE_POOL_EXHAUSTED", detail=str(exc))
+    if "enotfound" in msg or "tenant/user" in msg:
+        return AppError("SUPABASE_PROJECT_NOT_FOUND", detail=str(exc))
     if "connection" in msg or "connect" in msg:
         return AppError("SUPABASE_CONNECTION_FAILED", detail=str(exc))
     return AppError("INTERNAL_ERROR", detail=str(exc))

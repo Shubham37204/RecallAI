@@ -1,51 +1,77 @@
 "use client";
 
-import { AlertCircle, Search, HelpCircle } from "lucide-react";
+import type { ReactNode } from "react";
+import { ArrowDown, CheckCircle2, Search, XCircle } from "lucide-react";
+
+const oldWay = ["Saved forever", "Forgotten in folders", "Search by title"];
+const newWay = ["AI reads pages", "Summaries and tags", "Search by meaning"];
 
 export default function WhyWeExist() {
   return (
-    <section className="w-full bg-zinc-50/50 py-16 dark:bg-zinc-900/20 border-y border-zinc-100 dark:border-zinc-900">
+    <section className="w-full border-y border-zinc-200/70 bg-zinc-50 py-16 dark:border-zinc-900 dark:bg-zinc-900/20">
       <div className="mx-auto max-w-5xl px-6">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-12 items-start">
-          {/* Headline block */}
-          <div className="md:col-span-5 flex flex-col gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5">
-              <AlertCircle className="h-3 w-3 text-zinc-400" />
-              The Bookmark Trap
-            </span>
-            <h2 className="text-3xl font-medium tracking-tight text-zinc-905 dark:text-zinc-50 leading-tight">
-              Most bookmarks are never opened again.
+        <div className="grid gap-8 md:grid-cols-[0.9fr_1.1fr] md:items-center">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-cyan-700 dark:text-cyan-400">
+              Problem to solution
+            </p>
+            <h2 className="mt-3 max-w-md text-3xl font-medium tracking-tight text-zinc-950 dark:text-zinc-50">
+              Bookmarks remember links. You need to remember ideas.
             </h2>
+            <p className="mt-4 max-w-md text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+              Browser folders store URLs, not context. Bookmark Brain reads the source and makes the knowledge searchable.
+            </p>
           </div>
 
-          {/* Narrative detail */}
-          <div className="md:col-span-7 flex flex-col gap-6 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed md:pl-8 md:border-l md:border-zinc-200/60 dark:md:border-zinc-800/60">
-            <p>
-              People save hundreds of articles, videos, and docs, expecting to return to them later. Instead, links pile up in browser folders, chat apps, and digital drawers, completely forgotten.
-            </p>
-            <p className="font-medium text-zinc-905 dark:text-zinc-200">
-              Bookmark Brain breaks this loop. It reads, tags, and extracts semantic meaning from everything you save, turning stale URLs into an active, searchable second brain.
-            </p>
-            
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-2 pt-6 border-t border-zinc-200/60 dark:border-zinc-800/60">
-              <div className="flex gap-2">
-                <HelpCircle className="h-4 w-4 shrink-0 text-zinc-400 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-semibold text-zinc-800 dark:text-zinc-300">The Problem</h4>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Searching by title/URL fails when you can only remember the core concept.</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Search className="h-4 w-4 shrink-0 text-zinc-400 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-semibold text-zinc-800 dark:text-zinc-300">The Solution</h4>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Search inside the actual page text using simple, conversational English.</p>
-                </div>
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+            <ComparisonCard
+              title="Traditional bookmarks"
+              icon={<XCircle className="h-4 w-4 text-zinc-400" />}
+              items={oldWay}
+              muted
+            />
+            <div className="flex justify-center">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-cyan-700 shadow-sm sm:rotate-[-90deg]">
+                <ArrowDown className="h-4 w-4" />
               </div>
             </div>
+            <ComparisonCard
+              title="Bookmark Brain"
+              icon={<Search className="h-4 w-4 text-cyan-700" />}
+              items={newWay}
+            />
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function ComparisonCard({
+  title,
+  icon,
+  items,
+  muted = false,
+}: {
+  title: string;
+  icon: ReactNode;
+  items: string[];
+  muted?: boolean;
+}) {
+  return (
+    <div className={`rounded-xl border bg-white p-5 shadow-sm dark:bg-zinc-950 ${muted ? "border-zinc-200 dark:border-zinc-800" : "border-cyan-200 dark:border-cyan-900"}`}>
+      <div className="flex items-center gap-2">
+        {icon}
+        <h3 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{title}</h3>
+      </div>
+      <ul className="mt-4 space-y-2">
+        {items.map((item) => (
+          <li key={item} className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+            <CheckCircle2 className={`h-3.5 w-3.5 ${muted ? "text-zinc-300" : "text-cyan-600"}`} />
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
