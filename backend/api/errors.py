@@ -1,27 +1,3 @@
-"""
-api/errors.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Central error registry.
-
-Three failure categories, each with distinct UX:
-    TRANSIENT  → retry in a moment (connection blip)
-    QUOTA      → free tier limit hit, wait for reset
-    DEGRADED   → service down, operator action needed
-
-All errors surface as:
-    HTTP 503 with structured JSON body:
-    {
-        "error_code": "SUPABASE_POOL_EXHAUSTED",
-        "category": "degraded",
-        "message": "...",        ← user-facing
-        "action": "...",         ← what user should do
-        "retryable": true|false
-    }
-
-Frontend reads error_code and renders contextual UI.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -31,28 +7,23 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 
-# ── Error categories ──────────────────────────────────────────────────────────
-
 class ErrorCategory(str, Enum):
-    TRANSIENT = "transient"   # retry soon
-    QUOTA     = "quota"       # wait for reset
-    DEGRADED  = "degraded"    # service down
+    TRANSIENT = "transient"   
+    QUOTA     = "quota"       
+    DEGRADED  = "degraded"    
 
-
-# ── Error registry ────────────────────────────────────────────────────────────
 
 @dataclass(frozen=True)
 class ErrorSpec:
     code: str
     category: ErrorCategory
     http_status: int
-    message: str      # user-facing
-    action: str       # what to do
+    message: str    
+    action: str       
     retryable: bool
 
 
 ERRORS: dict[str, ErrorSpec] = {
-    # ── Supabase / Postgres ───────────────────────────────────────────────────
     "SUPABASE_POOL_EXHAUSTED": ErrorSpec(
         code="SUPABASE_POOL_EXHAUSTED",
         category=ErrorCategory.DEGRADED,
@@ -78,7 +49,6 @@ ERRORS: dict[str, ErrorSpec] = {
         retryable=False,
     ),
 
-    # ── Redis / Upstash ───────────────────────────────────────────────────────
     "REDIS_QUOTA_EXCEEDED": ErrorSpec(
         code="REDIS_QUOTA_EXCEEDED",
         category=ErrorCategory.QUOTA,
@@ -96,7 +66,7 @@ ERRORS: dict[str, ErrorSpec] = {
         retryable=True,
     ),
 
-    # ── Groq ──────────────────────────────────────────────────────────────────
+
     "GROQ_RATE_LIMIT": ErrorSpec(
         code="GROQ_RATE_LIMIT",
         category=ErrorCategory.QUOTA,
@@ -114,7 +84,6 @@ ERRORS: dict[str, ErrorSpec] = {
         retryable=True,
     ),
 
-    # ── HuggingFace ───────────────────────────────────────────────────────────
     "HF_RATE_LIMIT": ErrorSpec(
         code="HF_RATE_LIMIT",
         category=ErrorCategory.QUOTA,
@@ -132,7 +101,6 @@ ERRORS: dict[str, ErrorSpec] = {
         retryable=True,
     ),
 
-    # ── Qdrant ────────────────────────────────────────────────────────────────
     "QDRANT_UNAVAILABLE": ErrorSpec(
         code="QDRANT_UNAVAILABLE",
         category=ErrorCategory.DEGRADED,
@@ -141,8 +109,6 @@ ERRORS: dict[str, ErrorSpec] = {
         action="Qdrant may not be running. Start it with: docker start bookmark_qdrant",
         retryable=True,
     ),
-
-    # ── Generic fallback ──────────────────────────────────────────────────────
     "INTERNAL_ERROR": ErrorSpec(
         code="INTERNAL_ERROR",
         category=ErrorCategory.TRANSIENT,
@@ -154,14 +120,12 @@ ERRORS: dict[str, ErrorSpec] = {
 }
 
 
-# ── Custom exception ──────────────────────────────────────────────────────────
-
 class AppError(Exception):
     """Raise this anywhere in the app to surface a structured error to the client."""
 
     def __init__(self, error_code: str, detail: str | None = None) -> None:
         self.spec = ERRORS.get(error_code, ERRORS["INTERNAL_ERROR"])
-        self.detail = detail  # internal detail for logs — never sent to client
+        self.detail = detail  
         super().__init__(self.spec.message)
 
     def to_response(self) -> dict:
@@ -173,8 +137,6 @@ class AppError(Exception):
             "retryable": self.spec.retryable,
         }
 
-
-# ── Error detection helpers ───────────────────────────────────────────────────
 
 def classify_db_error(exc: Exception) -> AppError:
     """Map SQLAlchemy / asyncpg errors to AppError."""
@@ -217,8 +179,6 @@ def classify_qdrant_error(exc: Exception) -> AppError:
     return AppError("QDRANT_UNAVAILABLE", detail=str(exc))
 
 
-# ── FastAPI exception handlers ────────────────────────────────────────────────
-
 def register_error_handlers(app: FastAPI) -> None:
     """Register all exception handlers on the FastAPI app."""
 
@@ -231,7 +191,6 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
-        # Don't swallow HTTPException — let FastAPI handle those normally
         from fastapi import HTTPException
         if isinstance(exc, HTTPException):
             raise exc

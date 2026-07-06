@@ -1,13 +1,10 @@
 "use client";
-// components/BookmarkCard.tsx
 
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import type { Bookmark } from "@/types/bookmark";
-
-// ── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS_STYLES: Record<string, string> = {
   pending:
@@ -26,8 +23,6 @@ const STATUS_LABEL: Record<string, string> = {
   completed: "Indexed",
   failed: "Failed",
 };
-
-// ── Processing timeline ───────────────────────────────────────────────────────
 
 const PIPELINE_STEPS = [
   "Scraping content",
@@ -64,8 +59,6 @@ function ProcessingTimeline({ status }: { status: string }) {
     </div>
   );
 }
-
-// ── Detail drawer ─────────────────────────────────────────────────────────────
 
 function BookmarkDrawer({
   bookmark,
@@ -104,15 +97,12 @@ function BookmarkDrawer({
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Drawer */}
       <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white dark:bg-zinc-900 z-50 shadow-2xl flex flex-col">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
           <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
             Bookmark Details
@@ -125,9 +115,7 @@ function BookmarkDrawer({
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
-          {/* Title + status */}
           <div className="flex flex-col gap-2">
             <div className="flex items-start justify-between gap-3">
               <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 leading-snug">
@@ -151,7 +139,6 @@ function BookmarkDrawer({
             </a>
           </div>
 
-          {/* Metadata */}
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: "Source", value: domain },
@@ -179,7 +166,6 @@ function BookmarkDrawer({
             ))}
           </div>
 
-          {/* Summary */}
           {bookmark.summary && (
             <div className="flex flex-col gap-2">
               <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
@@ -191,7 +177,6 @@ function BookmarkDrawer({
             </div>
           )}
 
-          {/* Tags */}
           {(bookmark.tags ?? []).length > 0 && (
             <div className="flex flex-col gap-2">
               <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
@@ -211,7 +196,6 @@ function BookmarkDrawer({
             </div>
           )}
 
-          {/* Error */}
           {bookmark.status === "failed" && bookmark.error_message && (
             <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
               <p className="text-xs text-red-600 dark:text-red-400">
@@ -221,7 +205,6 @@ function BookmarkDrawer({
           )}
         </div>
 
-        {/* Actions */}
         <div className="px-6 py-4 border-t border-zinc-100 dark:border-zinc-800 flex gap-2">
           <Button
             variant="outline"
@@ -251,8 +234,6 @@ function BookmarkDrawer({
     </>
   );
 }
-
-// ── Card ──────────────────────────────────────────────────────────────────────
 
 interface BookmarkCardProps {
   bookmark: Bookmark;
@@ -295,7 +276,6 @@ export function BookmarkCard({ bookmark, onDelete }: BookmarkCardProps) {
           </span>
         </div>
 
-        {/* Processing timeline or summary */}
         {isProcessing ? (
           <ProcessingTimeline status={bookmark.status} />
         ) : bookmark.summary ? (
@@ -304,7 +284,6 @@ export function BookmarkCard({ bookmark, onDelete }: BookmarkCardProps) {
           </p>
         ) : null}
 
-        {/* Tags */}
         {(bookmark.tags ?? []).length > 0 && !isProcessing && (
           <div className="flex flex-wrap gap-1">
             {(bookmark.tags ?? []).slice(0, 4).map((tag) => (
@@ -324,7 +303,6 @@ export function BookmarkCard({ bookmark, onDelete }: BookmarkCardProps) {
           </div>
         )}
 
-        {/* Click hint */}
         <div className="hidden group-hover:flex items-center gap-1 text-xs text-blue-500">
           <span>View details →</span>
         </div>
@@ -340,8 +318,6 @@ export function BookmarkCard({ bookmark, onDelete }: BookmarkCardProps) {
     </>
   );
 }
-
-// ── Skeleton ──────────────────────────────────────────────────────────────────
 
 export function BookmarkCardSkeleton() {
   return (

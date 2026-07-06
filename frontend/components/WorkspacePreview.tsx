@@ -85,8 +85,7 @@ export default function WorkspacePreview() {
     <section id="workspace-preview" className="w-full bg-zinc-50/50 py-20 dark:bg-zinc-900/10 border-y border-zinc-100 dark:border-zinc-900">
       <div className="mx-auto max-w-5xl px-6">
         
-        {/* Title Block */}
-        <div className="text-center mb-12">
+       <div className="text-center mb-12">
           <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
             Interface walkthrough
           </span>
@@ -98,17 +97,17 @@ export default function WorkspacePreview() {
           </p>
         </div>
 
-        {/* Dashboard Shell */}
+
         <div className="rounded-xl border border-zinc-200/80 bg-white shadow-sm overflow-hidden dark:border-zinc-800/80 dark:bg-zinc-950">
           
-          {/* Top Panel Controls */}
+
           <div className="flex h-12 items-center justify-between border-b border-zinc-100 px-4 dark:border-zinc-900">
             <div className="flex items-center gap-2">
               <Library className="h-4 w-4 text-zinc-500" />
               <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">Main Library</span>
             </div>
             
-            {/* Nav tabs for workspaces */}
+
             <div className="flex items-center gap-1.5">
               <Tabs defaultValue="all" onValueChange={(val) => {
                 setActiveTab(val);
@@ -132,13 +131,13 @@ export default function WorkspacePreview() {
             </div>
           </div>
 
-          {/* Three Column Layout */}
+
           <div className="grid h-[500px] grid-cols-12">
             
-            {/* Col 1: Sidebar Directory */}
+
             <div className="col-span-3 hidden sm:flex flex-col border-r border-zinc-100 p-3 dark:border-zinc-900 bg-zinc-50/20 dark:bg-zinc-950/20">
               <div className="space-y-4">
-                {/* Section 1 */}
+
                 <div className="flex flex-col gap-1">
                   <span className="px-2 text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Library</span>
                   <div className="flex items-center gap-2 rounded px-2 py-1.5 text-xs text-violet-750 bg-violet-50/85 border-l-2 border-violet-500 rounded-l-none pl-1.5 dark:bg-violet-950/40 dark:text-violet-300 font-medium cursor-pointer">
@@ -151,7 +150,7 @@ export default function WorkspacePreview() {
                   </div>
                 </div>
 
-                {/* Section 2 */}
+
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between px-2">
                     <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Folders</span>
@@ -171,7 +170,7 @@ export default function WorkspacePreview() {
                   ))}
                 </div>
 
-                {/* Section 3 */}
+
                 <div className="flex flex-col gap-1">
                   <span className="px-2 text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Global Tags</span>
                   <div className="flex flex-wrap gap-1 p-1">
@@ -191,7 +190,7 @@ export default function WorkspacePreview() {
               </div>
             </div>
 
-            {/* Col 2: Middle Items List (Scrollable) */}
+
             <div className="col-span-12 sm:col-span-5 flex flex-col border-r border-zinc-100 dark:border-zinc-900">
               <ScrollArea className="flex-1">
                 <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
@@ -237,9 +236,8 @@ export default function WorkspacePreview() {
               </ScrollArea>
             </div>
 
-            {/* Col 3: Reading Drawer Detail view */}
+
             <div className="col-span-12 sm:col-span-4 flex flex-col p-5 bg-zinc-50/20 dark:bg-zinc-900/5 overflow-y-auto">
-              {/* Header metadata */}
               <div className="flex items-center justify-between border-b border-zinc-100 pb-3 dark:border-zinc-900">
                 <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">AI Reading Desk</span>
                 <a 
@@ -253,7 +251,7 @@ export default function WorkspacePreview() {
                 </a>
               </div>
 
-              {/* Body */}
+
               <div className="mt-4 flex flex-col gap-4">
                 <div>
                   <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
@@ -264,7 +262,7 @@ export default function WorkspacePreview() {
 
                 <Separator />
 
-                {/* AI Summary Block */}
+
                 <div className="rounded-lg border border-violet-100 bg-white p-3 dark:border-violet-955 dark:bg-zinc-955 hover:border-violet-200 transition-colors shadow-sm">
                   <div className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wide">
                     <Sparkles className="h-3.5 w-3.5 text-violet-550" />
@@ -275,7 +273,7 @@ export default function WorkspacePreview() {
                   </p>
                 </div>
 
-                {/* Bullets Key Takeaways */}
+
                 <div>
                   <h4 className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Indexed Takeaways</h4>
                   <ul className="mt-2 space-y-2 text-xs text-zinc-505 dark:text-zinc-400">

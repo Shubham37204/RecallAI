@@ -1,7 +1,3 @@
-// hooks/useCreateBookmark.ts
-// Submits a URL to POST /bookmarks.
-// onSuccess callback lets page.tsx trigger a bookmark list refresh.
-
 import { useAuth } from "@clerk/nextjs";
 import { useCallback, useState } from "react";
 import { createBookmark, getErrorMessage } from "@/lib/api";

@@ -1,4 +1,3 @@
-// hooks/useBookmarks.ts
 import { useAuth } from "@clerk/nextjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { deleteBookmark, getBookmarks, getErrorMessage } from "@/lib/api";

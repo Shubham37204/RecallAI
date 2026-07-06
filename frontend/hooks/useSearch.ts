@@ -1,8 +1,3 @@
-// hooks/useSearch.ts
-// Runs semantic search against POST /search.
-// Returns results, loading state, and the active query.
-// Clears results when query is empty.
-
 import { useAuth } from "@clerk/nextjs";
 import { useCallback, useState } from "react";
 import { getErrorMessage, searchBookmarks } from "@/lib/api";

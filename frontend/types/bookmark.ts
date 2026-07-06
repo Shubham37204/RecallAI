@@ -1,4 +1,3 @@
-// types/bookmark.ts
 export type BookmarkStatus = "pending" | "processing" | "completed" | "failed";
 
 export interface Bookmark {

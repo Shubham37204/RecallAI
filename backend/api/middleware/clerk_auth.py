@@ -68,7 +68,6 @@ async def verify_clerk_token(token: str, request: Request) -> str:
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token: missing sub claim")
 
-        # Store full claims for downstream use — no re-decode needed
         request.state.clerk_claims = payload
 
         return user_id
@@ -106,8 +105,6 @@ async def get_current_user_id(
         dev_user_id = request.headers.get("X-User-Id")
         if dev_user_id and not credentials:
             logger.warning("clerk.auth.dev_bypass", user_id=dev_user_id)
-            # No JWT in dev bypass — set empty claims so downstream code
-            # doesn't crash on getattr(request.state, "clerk_claims", {})
             request.state.clerk_claims = {}
             return dev_user_id
 

@@ -1,11 +1,3 @@
-"""
-services/bookmark_service.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-All DB operations for bookmarks and users.
-Routes call this — never touch DB directly from routers.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 import uuid
 from datetime import datetime, timezone
 
@@ -18,8 +10,6 @@ from stores.postgres.models import Bookmark, User
 
 logger = get_logger(__name__)
 
-
-# ── User ──────────────────────────────────────────────────────────────────────
 
 async def upsert_user(
     session: AsyncSession,
@@ -43,8 +33,6 @@ async def upsert_user(
     logger.debug("user.upserted", user_id=user_id)
 
 
-# ── Bookmarks ─────────────────────────────────────────────────────────────────
-
 async def create_bookmark(
     session: AsyncSession,
     user_id: str,
@@ -58,7 +46,6 @@ async def create_bookmark(
     email/name are best-effort from JWT claims — may be None.
     User row is created here on first save; no separate signup flow needed.
     """
-    # Ensure user exists before FK insert
     await upsert_user(session, user_id, email=email, name=name)
 
     bookmark = Bookmark(

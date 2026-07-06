@@ -1,11 +1,3 @@
-"""
-api/routers/bookmarks.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-HTTP routes for bookmark CRUD.
-No business logic here — all delegated to bookmark_service.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request

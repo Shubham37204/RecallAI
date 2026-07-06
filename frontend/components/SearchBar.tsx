@@ -1,5 +1,4 @@
 "use client";
-// components/SearchBar.tsx
 
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -73,7 +72,6 @@ export function SearchBar({
         )}
       </form>
 
-      {/* Example queries — shown when focused and empty */}
       {focused && !value && !hasResults && (
         <div className="flex flex-col gap-1 px-1">
           <p className="text-xs text-zinc-400">Try asking:</p>

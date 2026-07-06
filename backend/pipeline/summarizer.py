@@ -1,8 +1,3 @@
-"""
-pipeline/summarizer.py
-Groq errors are classified and stored in state.error
-so tasks.py can write a user-facing error_message to Postgres.
-"""
 from __future__ import annotations
 
 from groq import AsyncGroq, RateLimitError, APIStatusError
@@ -54,7 +49,6 @@ class SummarizerStep(BaseStep):
         try:
             summary = await self._call_groq(state.clean_text)
         except RateLimitError as e:
-            # Groq free tier: 30 RPM — surface this clearly to user
             state.mark_failed(
                 self.name,
                 "GROQ_RATE_LIMIT: AI summarization limit reached. "

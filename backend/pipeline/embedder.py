@@ -1,8 +1,3 @@
-"""
-pipeline/embedder.py
-HF rate limits and Qdrant failures are classified and stored
-in state.error with user-facing error codes.
-"""
 from __future__ import annotations
 
 import asyncio
@@ -54,7 +49,7 @@ class EmbedderStep(BaseStep):
             state.mark_failed(self.name, "No clean_text to embed")
             return state
 
-        # ── Generate embedding ────────────────────────────────────────────────
+
         try:
             model = _get_model()
             loop = asyncio.get_running_loop()
@@ -84,7 +79,7 @@ class EmbedderStep(BaseStep):
             )
             return state
 
-        # ── Upsert to Qdrant ──────────────────────────────────────────────────
+
         point_id = uuid.uuid4()
         try:
             await self._upsert_to_qdrant(

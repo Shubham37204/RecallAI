@@ -1,26 +1,3 @@
-"""
-api/main.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FastAPI application entry point.
-
-Startup order:
-    1. Logging setup
-    2. Qdrant collection ensured (non-fatal if unavailable)
-    3. App ready
-
-Shutdown order:
-    1. Redis client closed
-    2. Qdrant client closed
-    3. Postgres engine disposed
-
-Error handling:
-    AppError   → structured JSON (error_code, message, action)
-    All others → 500 with log (global_exception_handler)
-    AppError handler registered AFTER global handler so it
-    takes precedence for known errors.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 import time
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -84,14 +61,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ── Exception handlers ────────────────────────────────────────────────────────
-# Order matters: FastAPI uses the LAST registered handler for a given type.
-# Register generic 500 handler first, then AppError handler on top.
-# AppError wins for known errors; unknown exceptions fall to the 500 handler.
-
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    # Let AppError bubble up to its own handler — don't swallow it here
     if isinstance(exc, AppError):
         raise exc
     logger.error(
@@ -112,10 +83,8 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         },
     )
 
-# Registers AppError handler — takes precedence over Exception handler above
-register_error_handlers(app)
 
-# ── Middleware ────────────────────────────────────────────────────────────────
+register_error_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,
@@ -148,13 +117,11 @@ async def prometheus_middleware(request: Request, call_next):
 
     return response
 
-# ── Routers ───────────────────────────────────────────────────────────────────
 
 app.include_router(health.router)
 app.include_router(bookmarks.router)
 app.include_router(search_router)
 
-# ── OpenAPI schema ────────────────────────────────────────────────────────────
 
 def custom_openapi():
     if app.openapi_schema:
@@ -192,7 +159,6 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-# ── Metrics endpoint ──────────────────────────────────────────────────────────
 
 @app.get("/metrics", include_in_schema=False)
 async def metrics() -> Response:

@@ -1,8 +1,3 @@
-// lib/api.ts
-// Parses structured error responses from backend.
-// Every AppError returns { error_code, category, message, action, retryable }.
-// Generic errors fall back to HTTP status text.
-
 import type {
   Bookmark,
   BookmarkCreateResponse,
@@ -10,8 +5,6 @@ import type {
 } from "@/types/bookmark";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-
-// ── Structured error from backend ─────────────────────────────────────────────
 
 export interface ApiError {
   error_code: string;
@@ -29,7 +22,7 @@ export class AppApiError extends Error {
     super(apiError.message);
   }
 
-  /** Full user-facing string: message + action hint */
+
   get userMessage(): string {
     return `${this.apiError.message} ${this.apiError.action}`;
   }
@@ -42,8 +35,6 @@ export class AppApiError extends Error {
     return this.apiError.retryable;
   }
 }
-
-// ── Core fetch wrapper ────────────────────────────────────────────────────────
 
 async function fetchWithAuth<T>(
   path: string,
@@ -64,12 +55,10 @@ async function fetchWithAuth<T>(
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
 
-    // Structured AppError from backend
     if (body?.error_code) {
       throw new AppApiError(body as ApiError, res.status);
     }
 
-    // FastAPI validation error (422)
     if (body?.detail) {
       const detail =
         typeof body.detail === "string"
@@ -86,7 +75,7 @@ async function fetchWithAuth<T>(
   return res.json() as Promise<T>;
 }
 
-// ── Error message helper for hooks ────────────────────────────────────────────
+
 
 export function getErrorMessage(e: unknown): string {
   if (e instanceof AppApiError) {
@@ -98,7 +87,6 @@ export function getErrorMessage(e: unknown): string {
   return "An unexpected error occurred.";
 }
 
-// ── Bookmarks ─────────────────────────────────────────────────────────────────
 
 export async function getBookmarks(token: string): Promise<Bookmark[]> {
   return fetchWithAuth<Bookmark[]>("/bookmarks", token);
@@ -123,7 +111,6 @@ export async function deleteBookmark(
   });
 }
 
-// ── Search ────────────────────────────────────────────────────────────────────
 
 export async function searchBookmarks(
   token: string,

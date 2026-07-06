@@ -1,5 +1,4 @@
 "use client";
-// components/SearchResultCard.tsx
 
 import { Badge } from "@/components/ui/badge";
 import type { SearchResult } from "@/types/bookmark";

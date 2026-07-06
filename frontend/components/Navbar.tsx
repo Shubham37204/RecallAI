@@ -23,7 +23,6 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-200/70 bg-white/85 backdrop-blur-md dark:border-zinc-900 dark:bg-zinc-950/85">
       <div className="mx-auto flex max-w-5xl h-14 items-center justify-between px-6">
-        {/* Logo */}
         <Link href="/" className="flex items-center gap-2 text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
           <div className="flex h-5 w-5 items-center justify-center rounded bg-cyan-600 text-white">
             <Command className="h-3 w-3" />
@@ -31,7 +30,6 @@ export default function Navbar() {
           <span>Bookmark Brain</span>
         </Link>
 
-        {/* Desktop Nav Links */}
         <nav className="hidden items-center gap-6 md:flex">
           <button
             onClick={() => scrollToSection("features")}
@@ -53,7 +51,6 @@ export default function Navbar() {
           </button>
         </nav>
 
-        {/* Clerk Auth Actions */}
         <div className="flex items-center gap-3">
           {isLoaded && isSignedIn ? (
             <>

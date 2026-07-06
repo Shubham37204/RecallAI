@@ -1,12 +1,3 @@
-"""
-stores/postgres/models.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Two tables:
-    User     — one row per Clerk user, created on first bookmark save
-    Bookmark — one row per bookmark, FK → users.id with CASCADE delete
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-
 import uuid
 from datetime import datetime
 
@@ -30,7 +21,7 @@ class User(Base):
 
     id: Mapped[str] = mapped_column(
         String(255),
-        primary_key=True,  # Clerk user_id
+        primary_key=True,
     )
     email: Mapped[str | None] = mapped_column(
         String(255),
@@ -46,12 +37,11 @@ class User(Base):
         nullable=False,
     )
 
-    # Relationship — allows user.bookmarks ORM access if needed
     bookmarks: Mapped[list["Bookmark"]] = relationship(
         "Bookmark",
         back_populates="user",
         cascade="all, delete-orphan",
-        lazy="noload",  # never auto-load — always query explicitly
+        lazy="noload", 
     )
 
     def __repr__(self) -> str:
@@ -73,7 +63,6 @@ class Bookmark(Base):
 
     __tablename__ = "bookmarks"
 
-    # ── Identity ──────────────────────────────────────────────────────────────
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -86,11 +75,11 @@ class Bookmark(Base):
         index=True,
     )
 
-    # ── Input ─────────────────────────────────────────────────────────────────
+
     url: Mapped[str] = mapped_column(Text, nullable=False)
     title: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # ── Pipeline status ───────────────────────────────────────────────────────
+
     status: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
@@ -99,20 +88,19 @@ class Bookmark(Base):
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # ── AI output ─────────────────────────────────────────────────────────────
+
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     tags: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
 
-    # ── Vector reference ──────────────────────────────────────────────────────
     qdrant_point_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )
 
-    # ── Scraped content ───────────────────────────────────────────────────────
+
     raw_content: Mapped[str | None] = mapped_column(Text, nullable=True)
     content_length: Mapped[int | None] = mapped_column(nullable=True)
 
-    # ── Timestamps ────────────────────────────────────────────────────────────
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -128,7 +116,7 @@ class Bookmark(Base):
         DateTime(timezone=True), nullable=True
     )
 
-    # ── Relationship ──────────────────────────────────────────────────────────
+
     user: Mapped["User"] = relationship(
         "User",
         back_populates="bookmarks",
