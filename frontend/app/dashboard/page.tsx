@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Bookmark } from "@/types/bookmark";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { useCreateBookmark } from "@/hooks/useCreateBookmark";
@@ -54,10 +54,16 @@ export default function DashboardPage() {
 
   const visibleBookmarks = useMemo(() => {
     if (!query) return bookmarks;
-    return results
-      .map((result) => bookmarks.find((bookmark) => bookmark.id === result.bookmark_id))
-      .filter(Boolean) as Bookmark[];
+    return results;
   }, [bookmarks, query, results]);
+
+  useEffect(() => {
+    if (!selectedBookmark) return;
+    const latestBookmark = bookmarks.find((bookmark) => bookmark.id === selectedBookmark.id);
+    if (latestBookmark) {
+      setSelectedBookmark(latestBookmark);
+    }
+  }, [bookmarks, selectedBookmark]);
 
   async function handleSubmitUrl(url: string) {
     const created = await submit(url);

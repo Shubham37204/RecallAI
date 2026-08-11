@@ -2,12 +2,12 @@ import time
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import Response
 
-from api.errors import AppError, register_error_handlers
+from api.errors import register_error_handlers
 from api.routers import bookmarks, health
 from api.routers.search import router as search_router
 from config.settings import get_settings
@@ -60,29 +60,6 @@ app = FastAPI(
     redoc_url="/redoc" if settings.is_development else None,
     lifespan=lifespan,
 )
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    if isinstance(exc, AppError):
-        raise exc
-    logger.error(
-        "unhandled.exception",
-        path=str(request.url.path),
-        method=request.method,
-        error=str(exc),
-        exc_info=True,
-    )
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error_code": "INTERNAL_ERROR",
-            "category": "transient",
-            "message": "An unexpected error occurred.",
-            "action": "Please try again. If this persists, check the server logs.",
-            "retryable": True,
-        },
-    )
-
 
 register_error_handlers(app)
 

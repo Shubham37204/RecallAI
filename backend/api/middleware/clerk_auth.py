@@ -61,12 +61,19 @@ async def verify_clerk_token(token: str, request: Request) -> str:
             token,
             jwks,
             algorithms=["RS256"],
-            options={"verify_aud": False},
+            audience=settings.clerk_audience,
+            issuer=settings.clerk_issuer,
+            options={"verify_aud": settings.clerk_audience is not None},
         )
 
         user_id: Optional[str] = payload.get("sub")
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token: missing sub claim")
+
+        if settings.clerk_authorized_party:
+            azp = payload.get("azp")
+            if azp != settings.clerk_authorized_party:
+                raise HTTPException(status_code=401, detail="Invalid token: wrong authorized party")
 
         request.state.clerk_claims = payload
 

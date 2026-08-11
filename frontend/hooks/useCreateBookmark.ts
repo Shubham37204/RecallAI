@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/nextjs";
 import { useCallback, useState } from "react";
-import { createBookmark, getErrorMessage } from "@/lib/api";
+import { CLERK_TOKEN_TEMPLATE, createBookmark, getErrorMessage } from "@/lib/api";
 import type { BookmarkCreateResponse } from "@/types/bookmark";
 
 interface UseCreateBookmarkResult {
@@ -10,7 +10,7 @@ interface UseCreateBookmarkResult {
 }
 
 export function useCreateBookmark(onSuccess?: () => void): UseCreateBookmarkResult {
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +23,8 @@ export function useCreateBookmark(onSuccess?: () => void): UseCreateBookmarkResu
       setError(null);
 
       try {
-        const token = await getToken();
+        if (!isLoaded || !isSignedIn) throw new Error("Not authenticated");
+        const token = await getToken({ template: CLERK_TOKEN_TEMPLATE });
         if (!token) throw new Error("Not authenticated");
         const bookmark = await createBookmark(token, trimmed);
         onSuccess?.();
@@ -35,7 +36,7 @@ export function useCreateBookmark(onSuccess?: () => void): UseCreateBookmarkResu
         setSubmitting(false);
       }
     },
-    [getToken, onSuccess]
+    [getToken, isLoaded, isSignedIn, onSuccess]
   );
 
   return { submit, submitting, error };

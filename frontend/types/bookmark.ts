@@ -10,7 +10,7 @@ export interface Bookmark {
   created_at: string;
   updated_at: string;
   error_message: string | null;
-  content_length: number | null;
+  content_length?: number | null;
   completed_at: string | null;
 }
 

@@ -10,16 +10,25 @@ def get_qdrant_client() -> AsyncQdrantClient:
     global _client
     if _client is None:
         settings = get_settings()
-        use_https = settings.qdrant_api_key is not None and len(settings.qdrant_api_key) > 0
-        _client = AsyncQdrantClient(
-            host=settings.qdrant_host,
-            port=settings.qdrant_port,
-            api_key=settings.qdrant_api_key if use_https else None,
-            timeout=settings.http_timeout_seconds,
-            https=use_https,
-            prefer_grpc=False,
-            check_compatibility=False,
-        )
+        if settings.qdrant_url:
+            _client = AsyncQdrantClient(
+                url=settings.qdrant_url,
+                api_key=settings.qdrant_api_key,
+                timeout=settings.http_timeout_seconds,
+                prefer_grpc=False,
+                check_compatibility=False,
+            )
+        else:
+            use_https = bool(settings.qdrant_api_key)
+            _client = AsyncQdrantClient(
+                host=settings.qdrant_host,
+                port=settings.qdrant_port,
+                api_key=settings.qdrant_api_key if use_https else None,
+                timeout=settings.http_timeout_seconds,
+                https=use_https,
+                prefer_grpc=False,
+                check_compatibility=False,
+            )
     return _client
 
 
@@ -52,4 +61,3 @@ async def check_qdrant_health() -> bool:
         return result is not None
     except Exception:
         return False
-    

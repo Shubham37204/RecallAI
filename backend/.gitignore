@@ -18,8 +18,6 @@ ENV/
 .env.*
 !.env.example
 
-# Test files requested to be excluded
-tests/
 .env.txt/
 
 # Test, coverage, and quality tool artifacts
@@ -91,5 +89,4 @@ hf_cache/
 Thumbs.db
 Desktop.ini
 validate.py
-test_bookmarks.py
 run.txt

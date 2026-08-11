@@ -6,6 +6,10 @@ from enum import Enum
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from observability.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class ErrorCategory(str, Enum):
     TRANSIENT = "transient"   
@@ -131,7 +135,7 @@ class AppError(Exception):
     def to_response(self) -> dict:
         return {
             "error_code": self.spec.code,
-            "category": self.spec.category,
+            "category": self.spec.category.value,
             "message": self.spec.message,
             "action": self.spec.action,
             "retryable": self.spec.retryable,
@@ -194,8 +198,15 @@ def register_error_handlers(app: FastAPI) -> None:
         from fastapi import HTTPException
         if isinstance(exc, HTTPException):
             raise exc
+        logger.error(
+            "unhandled.exception",
+            path=str(request.url.path),
+            method=request.method,
+            error=str(exc),
+            exc_info=True,
+        )
         return JSONResponse(
             status_code=500,
-            content=ERRORS["INTERNAL_ERROR"].__dict__,
+            content=AppError("INTERNAL_ERROR").to_response(),
         )
     

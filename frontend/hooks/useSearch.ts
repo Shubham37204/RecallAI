@@ -1,10 +1,10 @@
 import { useAuth } from "@clerk/nextjs";
-import { useCallback, useState } from "react";
-import { getErrorMessage, searchBookmarks } from "@/lib/api";
-import type { SearchResult } from "@/types/bookmark";
+import { useCallback, useRef, useState } from "react";
+import { CLERK_TOKEN_TEMPLATE, getBookmark, getErrorMessage, searchBookmarks } from "@/lib/api";
+import type { Bookmark } from "@/types/bookmark";
 
 interface UseSearchResult {
-  results: SearchResult[];
+  results: Bookmark[];
   query: string;
   searching: boolean;
   error: string | null;
@@ -13,11 +13,13 @@ interface UseSearchResult {
 }
 
 export function useSearch(): UseSearchResult {
-  const { getToken } = useAuth();
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const { getToken, isLoaded, isSignedIn } = useAuth();
+  const [results, setResults] = useState<Bookmark[]>([]);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
 
   const search = useCallback(
     async (q: string) => {
@@ -28,29 +30,51 @@ export function useSearch(): UseSearchResult {
         return;
       }
 
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
+
       setSearching(true);
       setError(null);
       setQuery(trimmed);
 
       try {
-        const token = await getToken();
+        if (!isLoaded || !isSignedIn) throw new Error("Not authenticated");
+        const token = await getToken({ template: CLERK_TOKEN_TEMPLATE });
         if (!token) throw new Error("Not authenticated");
-        const data = await searchBookmarks(token, trimmed);
-        setResults(data.results);
+        const data = await searchBookmarks(token, trimmed, 10, controller.signal);
+        const bookmarks = await Promise.all(
+          data.results.map((result) =>
+            getBookmark(token, result.bookmark_id, controller.signal)
+          )
+        );
+        if (requestId === requestIdRef.current) {
+          setResults(bookmarks);
+        }
       } catch (e) {
-        setError(getErrorMessage(e));
-        setResults([]);
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        if (requestId === requestIdRef.current) {
+          setError(getErrorMessage(e));
+          setResults([]);
+        }
       } finally {
-        setSearching(false);
+        if (requestId === requestIdRef.current) {
+          setSearching(false);
+        }
       }
     },
-    [getToken]
+    [getToken, isLoaded, isSignedIn]
   );
 
   const clear = useCallback(() => {
+    abortRef.current?.abort();
+    requestIdRef.current += 1;
     setResults([]);
     setQuery("");
     setError(null);
+    setSearching(false);
   }, []);
 
   return { results, query, searching, error, search, clear };

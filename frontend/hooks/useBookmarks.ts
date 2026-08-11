@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/nextjs";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { deleteBookmark, getBookmarks, getErrorMessage } from "@/lib/api";
+import { CLERK_TOKEN_TEMPLATE, deleteBookmark, getBookmarks, getErrorMessage } from "@/lib/api";
 import type { Bookmark } from "@/types/bookmark";
 
 interface UseBookmarksResult {
@@ -12,7 +12,7 @@ interface UseBookmarksResult {
 }
 
 export function useBookmarks(): UseBookmarksResult {
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,9 +20,12 @@ export function useBookmarks(): UseBookmarksResult {
   const initialLoadRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetch = useCallback(async () => {
+    if (!isLoaded) return [];
+
     setError(null);
     try {
-      const token = await getToken();
+      if (!isSignedIn) throw new Error("Not authenticated");
+      const token = await getToken({ template: CLERK_TOKEN_TEMPLATE });
       if (!token) throw new Error("Not authenticated");
       const data = await getBookmarks(token);
       setBookmarks(data);
@@ -33,7 +36,7 @@ export function useBookmarks(): UseBookmarksResult {
     } finally {
       setLoading(false);
     }
-  }, [getToken]);
+  }, [getToken, isLoaded, isSignedIn]);
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -63,6 +66,8 @@ export function useBookmarks(): UseBookmarksResult {
   }, [fetch, startPolling]);
 
   useEffect(() => {
+    if (!isLoaded) return;
+
     initialLoadRef.current = setTimeout(() => {
       void loadAndMaybePoll();
     }, 0);
@@ -72,7 +77,7 @@ export function useBookmarks(): UseBookmarksResult {
       }
       stopPolling();
     };
-  }, [loadAndMaybePoll, stopPolling]);
+  }, [isLoaded, loadAndMaybePoll, stopPolling]);
 
   const refresh = useCallback(() => {
     stopPolling();
@@ -82,12 +87,19 @@ export function useBookmarks(): UseBookmarksResult {
 
   const remove = useCallback(
     async (id: string) => {
-      const token = await getToken();
-      if (!token) throw new Error("Not authenticated");
-      await deleteBookmark(token, id);
-      setBookmarks((prev) => prev.filter((b) => b.id !== id));
+      setError(null);
+      try {
+        if (!isLoaded || !isSignedIn) throw new Error("Not authenticated");
+        const token = await getToken({ template: CLERK_TOKEN_TEMPLATE });
+        if (!token) throw new Error("Not authenticated");
+        await deleteBookmark(token, id);
+        setBookmarks((prev) => prev.filter((b) => b.id !== id));
+      } catch (e) {
+        setError(getErrorMessage(e));
+        throw e;
+      }
     },
-    [getToken]
+    [getToken, isLoaded, isSignedIn]
   );
 
   return { bookmarks, loading, error, refresh, remove };

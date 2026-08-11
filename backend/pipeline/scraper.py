@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+import ipaddress
+import socket
+
 import httpx
 import trafilatura
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -13,6 +17,12 @@ _USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/120.0.0.0 Safari/537.36"
 )
+_SCRAPER_HEADERS = {
+    "User-Agent": _USER_AGENT,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+_BLOCKED_HOSTS = {"localhost", "localhost.localdomain"}
 
 
 class ScraperStep(BaseStep):
@@ -96,11 +106,55 @@ class ScraperStep(BaseStep):
         reraise=True,
     )
     async def _fetch_html(url: str, timeout: int) -> str:
+        settings = get_settings()
+        current_url = httpx.URL(url)
         async with httpx.AsyncClient(
             timeout=timeout,
-            follow_redirects=True,
-            headers={"User-Agent": _USER_AGENT},
+            follow_redirects=False,
+            headers=_SCRAPER_HEADERS,
         ) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-            return response.text
+            for redirect_count in range(settings.scraper_max_redirects + 1):
+                await _validate_public_http_url(current_url)
+                response = await client.get(current_url)
+
+                if response.is_redirect:
+                    if redirect_count == settings.scraper_max_redirects:
+                        raise ValueError("Too many redirects while fetching URL")
+                    location = response.headers.get("location")
+                    if not location:
+                        raise ValueError("Redirect response missing Location header")
+                    current_url = response.url.join(location)
+                    continue
+
+                response.raise_for_status()
+                return response.text
+
+        raise ValueError("Too many redirects while fetching URL")
+
+
+async def _validate_public_http_url(url: httpx.URL) -> None:
+    if url.scheme not in {"http", "https"}:
+        raise ValueError("Only http and https URLs are allowed")
+
+    if not url.host:
+        raise ValueError("URL host is required")
+
+    host = url.host.rstrip(".").lower()
+    if host in _BLOCKED_HOSTS:
+        raise ValueError("Localhost URLs are not allowed")
+
+    addresses = await asyncio.to_thread(socket.getaddrinfo, host, url.port or None, type=socket.SOCK_STREAM)
+    if not addresses:
+        raise ValueError("URL host could not be resolved")
+
+    for address in addresses:
+        ip = ipaddress.ip_address(address[4][0])
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_multicast
+            or ip.is_reserved
+            or ip.is_unspecified
+        ):
+            raise ValueError("URL resolves to a blocked network address")

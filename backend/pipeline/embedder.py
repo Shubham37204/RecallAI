@@ -80,7 +80,7 @@ class EmbedderStep(BaseStep):
             return state
 
 
-        point_id = uuid.uuid4()
+        point_id = state.bookmark_id
         try:
             await self._upsert_to_qdrant(
                 point_id=point_id,
@@ -147,4 +147,3 @@ class EmbedderStep(BaseStep):
                 )
             ],
         )
-        

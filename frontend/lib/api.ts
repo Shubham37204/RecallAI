@@ -4,7 +4,15 @@ import type {
   SearchResponse,
 } from "@/types/bookmark";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+if (process.env.NODE_ENV === "production" && !configuredApiUrl) {
+  throw new Error("NEXT_PUBLIC_API_URL is not configured.");
+}
+
+const API_URL = (configuredApiUrl ?? "http://localhost:8000").replace(/\/$/, "");
+export const CLERK_TOKEN_TEMPLATE =
+  process.env.NEXT_PUBLIC_CLERK_TOKEN_TEMPLATE ?? "backend";
 
 export interface ApiError {
   error_code: string;
@@ -92,6 +100,14 @@ export async function getBookmarks(token: string): Promise<Bookmark[]> {
   return fetchWithAuth<Bookmark[]>("/bookmarks", token);
 }
 
+export async function getBookmark(
+  token: string,
+  bookmarkId: string,
+  signal?: AbortSignal
+): Promise<Bookmark> {
+  return fetchWithAuth<Bookmark>(`/bookmarks/${bookmarkId}`, token, { signal });
+}
+
 export async function createBookmark(
   token: string,
   url: string
@@ -115,10 +131,12 @@ export async function deleteBookmark(
 export async function searchBookmarks(
   token: string,
   query: string,
-  limit = 10
+  limit = 10,
+  signal?: AbortSignal
 ): Promise<SearchResponse> {
   return fetchWithAuth<SearchResponse>("/search", token, {
     method: "POST",
     body: JSON.stringify({ q: query, limit }),
+    signal,
   });
 }

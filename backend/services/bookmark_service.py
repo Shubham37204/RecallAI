@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config.settings import get_settings
 from observability.logger import get_logger
 from stores.postgres.models import Bookmark, User
 
@@ -195,9 +196,10 @@ async def delete_bookmark(
 
     if bookmark.qdrant_point_id:
         from stores.qdrant.client import get_qdrant_client
+        settings = get_settings()
         client = get_qdrant_client()
         await client.delete(
-            collection_name="bookmarks",
+            collection_name=settings.qdrant_collection_name,
             points_selector=[str(bookmark.qdrant_point_id)],
         )
 

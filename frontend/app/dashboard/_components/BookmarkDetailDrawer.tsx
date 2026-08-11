@@ -124,7 +124,10 @@ export function BookmarkDetailDrawer({ bookmark, onClose, onDelete }: BookmarkDe
         </div>
 
         <div className="flex gap-2 border-t border-zinc-200 px-5 py-4">
-          <Button className="rounded-lg bg-zinc-950 text-white hover:bg-zinc-800" onClick={() => window.open(bookmarkUrl, "_blank")}>
+          <Button
+            className="rounded-lg bg-zinc-950 text-white hover:bg-zinc-800"
+            onClick={() => window.open(bookmarkUrl, "_blank", "noopener,noreferrer")}
+          >
             <ExternalLink className="h-4 w-4" />
             Open Original
           </Button>

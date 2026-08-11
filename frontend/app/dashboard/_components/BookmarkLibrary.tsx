@@ -124,7 +124,12 @@ function BookmarkCard({
         </div>
 
         <div className="flex shrink-0 items-start gap-1">
-          <Button variant="ghost" size="icon-sm" className="rounded-md" onClick={() => window.open(bookmark.url, "_blank")}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-md"
+            onClick={() => window.open(bookmark.url, "_blank", "noopener,noreferrer")}
+          >
             <ExternalLink className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon-sm" className="rounded-md" onClick={copyUrl}>
@@ -133,7 +138,14 @@ function BookmarkCard({
           <Button variant="ghost" size="icon-sm" className="rounded-md" onClick={() => onViewDetails(bookmark)}>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon-sm" className="rounded-md text-rose-500 hover:text-rose-600" onClick={() => onDelete(bookmark.id)}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-md text-rose-500 hover:text-rose-600"
+            onClick={() => {
+              void onDelete(bookmark.id).catch(() => undefined);
+            }}
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
